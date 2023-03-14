@@ -1,0 +1,44 @@
+{
+  "1": {
+    "name": "돌",
+    "rank": "F",
+    "weight": 0.01,
+    "price": 1
+  },
+  "2": {
+    "name": "석탄",
+    "rank": "F",
+    "weight": 0.05,
+    "price": 7
+  },
+  "3": {
+    "name": "철 원석",
+    "rank": "E",
+    "weight": 0.1,
+    "price": 20
+  },
+  "4": {
+    "name": "금 원석",
+    "rank": "E",
+    "weight": 0.3,
+    "price": 65
+  },
+  "5": {
+    "name": "에메랄드 원석",
+    "rank": "D",
+    "weight": 1.0,
+    "price": 700
+  },
+  "6": {
+    "name": "다이아몬드 원석",
+    "rank": "D",
+    "weight": 1.0,
+    "price": 1000
+  },
+  "7": {
+    "name": "루비 원석",
+    "rank": "D",
+    "weight": 1.3,
+    "price": 1500
+  }
+}

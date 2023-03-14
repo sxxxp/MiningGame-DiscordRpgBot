@@ -5,10 +5,11 @@ import random
 from datetime import datetime
 import pymysql
 from itertools import chain
-from collections import defaultdict
+import random
+import math
+import json
 
-
-GUILD_ID = '884259665964314655'
+GUILD_ID = '934824600498483220'
 
 
 class MyClient(discord.Client):
@@ -25,6 +26,37 @@ tree = app_commands.CommandTree(client)
 con = pymysql.connect(host='localhost', password='0000',
                       user='root', port=3306, database='miner', charset='utf8')
 adventrue_inventory = {}
+
+
+def block_exp(level: int, exp: int):
+    guild = client.get_guild(884259665964314655)
+    name = ["0_", "1_", "2_", "3_", "4_", "5_", "6_", "7_", "8_", "9_", "10"]
+    block = [discord.utils.get(guild.emojis, name=i) for i in name]
+    level_file = open("./final/json/level.json", "r", encoding="utf-8")
+    level_info = json.load(level_file)
+    percent = round(exp/level_info[str(level)]*100)
+    print(percent)
+    string = ''
+    for i in range(int(percent/10)):
+        string += block[10]
+    string += block[int(percent % 10)]
+    for i in range(10-len(string)):
+        string += block[0]
+    return string
+
+
+def is_levelup(level: int, exp: int, id: int):
+    level_file = open("./final/json/level.json", "r", encoding="utf-8")
+    level_info = json.load(level_file)
+    num = 0
+    while level_info[str(level+num)] <= exp:
+        exp -= level_info[str(level+num)]
+        num += 1
+    cur = con.cursor()
+    cur.execute(
+        "UPDATE user_info SET level = level + %s , exp = %s WHERE id = %s", (num, exp, id))
+    con.commit()
+    return num
 
 
 def makeDictionary(keys: list, values: tuple):
@@ -72,16 +104,17 @@ def getStatus(id: int):  # 유저 스텟 불러오기
     weapon = makeDictionary(['power', 'damage', 'option'], cur.fetchone())
     option = getOption(weapon['option'])
     cur.execute(
-        "SELECT power,hp*2,str,crit,crit_damage FROM user_stat WHERE id=%s", id)
+        "SELECT power,hp*2,str/2,crit,crit_damage FROM user_stat WHERE id=%s", id)
     stat = makeDictionary(['power', 'hp', 'str', 'crit',
                           'crit_damage'], cur.fetchone())
     final = {'power': 0, 'hp': 50, "str": 0,
-             'damage': 0, 'crit': 0, 'crit_damage': 0}
+             'damage': 0, 'crit': 0, 'crit_damage': 0, 'maxhp': 0}
     for key, value in chain(wear.items(), weapon.items(), option.items(), stat.items()):
         if value:
             final[key] += value
     final['damage'] /= 100
     final['crit_damage'] /= 100
+    final['maxhp'] = final['hp']
     return final
 
 
@@ -117,7 +150,7 @@ def setup():  # 데이터베이스 테이블 생성
                 (name TEXT,`rank` TEXT,level INT,power TEXT,hp TEXT,str TEXT,part INT,trade BOOLEAN,url TEXT)""")
     # enemy 광석(이름,힘,체력,층,드롭아이템코드,드롭아이템확률,드롭아이템개수,이미지)
     cur.execute("""CREATE TABLE IF NOT EXISTS enemy
-                (name TEXT,power INT,hp INT,floor INT,item_code TEXT,item_percent TEXT,item_amount TEXT,url TEXT)""")
+                (name TEXT,power INT,hp INT,floor INT,exp INT,item_code TEXT,item_percent TEXT,item_amount TEXT,url TEXT)""")
 
 
 @tree.command(guild=discord.Object(id=GUILD_ID), name="회원가입", description="회원가입입니다.")
@@ -137,6 +170,17 @@ async def register(interaction: Interaction, 닉네임: str):
         await interaction.response.send_message("아이디가 생성되었습니다.", ephemeral=True)
 
 
+@tree.command(guild=discord.Object(id=GUILD_ID), name="정보", description="정보")
+async def info(interaction: Interaction, 유저: discord.Member = None):
+    embed = discord.Embed(title="정보")
+    cur = con.cursor()
+    id = interaction.user.id if 유저 else 유저.id
+    cur.execute(
+        "SELECT nickname,exp,level,money,create_at FROM user_info WHERE id=%s", id)
+    user = makeDictionary(
+        ['nickname', 'exp', 'level', 'money', 'create_at'], cur.fetchone())
+
+
 @tree.command(guild=discord.Object(id=GUILD_ID), name="인벤토리", description="인벤토리")
 async def inventory(interaction: Interaction):
     cur = con.cursor()
@@ -148,18 +192,13 @@ async def mining(interaction: Interaction):
         return await interaction.response.send_message("`회원가입` 명령어로 먼저 가입을 해주세요.", ephemeral=True)
     cur = con.cursor()
     stat = getStatus(interaction.user.id)
-    cur.execute(
-        "SELECT name,power,hp,item_code,item_percent,item_amount,url FROM enemy WHERE floor=%s ORDER BY RAND() LIMIT 1", 1)
-    enemy = makeDictionary(['name', 'power', 'hp', 'item_code',
-                           "item_percent", "item_amount", "url"], cur.fetchone())
     adventrue_inventory[interaction.user.id] = makeDictionary(
-        ['weight', 'items'], (2.0, [{"name": "돌", "rank": "F", "weight": 0.01, 'price': 1, 'amount': 100}, {"name": "석탄", "rank": "F", "weight": 0.05, 'price': 7, 'amount': 10}]))
-    # items : [{name:"돌",rank:"F",weight:0.01,price:1,amount:100},{"name":"석탄","rank":"F","weight":0.1,'price':5,'amount':10}]
+        ['weight', 'items', 'names'], (0.0, [], []))
 
-    async def remove_callback(interaction: Interaction):
-        view = ui.View()
+    async def remove_callback(interaction: Interaction):  # 아이템버리기
+        view = ui.View(timeout=None)
         options = [SelectOption(
-            label="버그해결용", description="혹시 취소버튼을 눌렀다면 이걸 누르세요.", value="bug-bug-bug")]
+            label="뒤로가기", description="혹시 취소버튼을 눌렀다면 이걸 누르세요.", value="bug-bug-bug")]
         for item in adventrue_inventory[interaction.user.id]['items']:
             options.append(SelectOption(
                 label=f"{item['name']} {item['amount']}개",
@@ -193,6 +232,13 @@ async def mining(interaction: Interaction):
                         for i in adventrue_inventory[interaction.user.id]['items']:
                             if i['name'] == name:
                                 i['amount'] -= int(self.answer.value)
+                                if i['amount'] == 0:
+                                    adventrue_inventory[interaction.user.id]['items'].remove(
+                                        i)
+                                    adventrue_inventory[interaction.user.id]['names'].remove(
+                                        name)
+                                    print(
+                                        adventrue_inventory[interaction.user.id])
                                 break
                         await interaction.response.edit_message(content=f"{name}을 {self.answer.value}개 버렸습니다.\n중량 -{round(int(self.answer.value)*float(weight),3)}")
                         await start()
@@ -200,31 +246,163 @@ async def mining(interaction: Interaction):
         items.callback = item_remove_callback
         await interaction.response.edit_message(view=view)
 
-    async def go_callback(interaction: Interaction):
+    async def go_callback(interaction: Interaction):  # 탐험진행
         cur.execute(
-            "SELECT name,power,hp,item_code,item_percent,item_amount,url FROM enemy WHERE floor=%s ORDER BY RAND() LIMIT 1", 1)
-        enemy = makeDictionary(['name', 'power', 'hp', 'item_code',
+            "SELECT name,power,hp,exp,item_code,item_percent,item_amount,url FROM enemy WHERE floor=%s ORDER BY RAND() LIMIT 1", 1)
+        enemy = makeDictionary(['name', 'power', 'hp', 'exp', 'item_code',
                                 "item_percent", "item_amount", "url"], cur.fetchone())
+        stat['hp'] = stat['maxhp']
 
-    async def stop_callback(interaction: Interaction):
+        async def run_callback(interaction: Interaction):  # 도망치기
+            await interaction.response.edit_message(content="도망쳤습니다.")
+            return await start()
+
+        async def end_win_callback(interaction: Interaction):  # 전투 끝날때
+            await interaction.response.edit_message(content="재정비...")
+            await start()
+
+        async def win(interaction: Interaction):  # 이겼을때
+            item_json = open('./final/json/stone.json', 'r', encoding='utf-8')
+            stone_data = json.load(item_json)
+            code = enemy['item_code'].split(" ")
+            percent = enemy['item_percent'].split(" ")
+            amount = enemy['item_amount'].split(" ")
+            cur.execute("UPDATE user_info SET exp = exp + %s WHERE id = %s",
+                        (enemy['exp'], interaction.user.id))
+            con.commit()
+            cur.execute(
+                "SELECT level,exp FROM user_info WHERE id = %s", interaction.user.id)
+            level, exp = cur.fetchone()
+            num = is_levelup(level, exp, interaction.user.id)
+            embed = discord.Embed(title="보상 요약")
+            embed.add_field(
+                name=f"{enemy['exp']} 경험치를 획득했습니다.", value="\u200b", inline=False)
+            if num:
+                embed.add_field(
+                    name=f"{level+num} 레벨이 되었습니다.", value="\u200b", inline=False)
+            view = ui.View(timeout=None)
+            for i in range(len(percent)):
+                if getSuccess(int(percent[i]), 100):
+                    stone: dict = stone_data[code[i]]
+                    min, max = amount[i].split("~")
+                    total = random.randint(int(min), int(max))
+                    if stone['name'] in adventrue_inventory[interaction.user.id]['names']:
+                        for i in adventrue_inventory[interaction.user.id]['items']:
+                            if i['name'] == stone['name']:
+                                i['amount'] += total
+                                adventrue_inventory[interaction.user.id]['weight'] += total * \
+                                    stone['weight']
+                                break
+                    else:
+                        stone.update({"amount": total})
+                        adventrue_inventory[interaction.user.id]['items'].append(
+                            stone)
+                        adventrue_inventory[interaction.user.id]['weight'] += total * \
+                            stone['weight']
+                        adventrue_inventory[interaction.user.id]['names'].append(
+                            stone['name'])
+                    embed.add_field(
+                        name=f"{stone['name']} {total}개 획득!", inline=False, value="\u200b")
+            end_win = ui.Button(label="정비하기", style=ButtonStyle.green)
+            end_win.callback = end_win_callback
+            view.add_item(end_win)
+            await interaction.response.edit_message(content="", embed=embed, view=view)
+
+        async def lose(interaction: Interaction):  # 졌을때
+            embed = discord.Embed(title="기절했습니다.")
+            for i in adventrue_inventory[interaction.user.id]['items']:
+                max = math.ceil(i['amount']/2)
+                total = random.randint(0, max)
+                i['amount'] -= total
+                adventrue_inventory[interaction.user.id]['weight'] -= total*i['weight']
+                if i['amount'] <= 0:
+                    adventrue_inventory[interaction.user.id]['names'].remove(
+                        i['name'])
+                    adventrue_inventory[interaction.user.id]['items'].remove(i)
+                if total > 0:
+                    embed.add_field(
+                        name=f"{i['name']}을 {total}개 잃어버렸습니다..", value="\u200b", inline=False)
+            view = ui.View(timeout=None)
+            end_win = ui.Button(label="정비하기", style=ButtonStyle.green)
+            end_win.callback = end_win_callback
+            view.add_item(end_win)
+            await interaction.response.edit_message(content="", embed=embed, view=view)
+
+        async def attack_callback(interaction: Interaction):  # 공격했을때
+            if getSuccess(stat['crit'], 100):
+                enemy['hp'] -= stat['power']+stat['power']*stat['crit_damage']
+            else:
+                enemy['hp'] -= stat['power']
+            stat['hp'] -= enemy['power']
+            if enemy['hp'] <= 0:
+                if stat['hp'] >= enemy['hp']:
+                    await win(interaction)
+                else:
+                    await lose(interaction)
+            elif stat['hp'] <= 0:
+                await lose(interaction)
+            await try_callback(interaction)
+
+        async def try_callback(interaction: Interaction):  # 도전하기
+            embed = discord.Embed(title=enemy['name'])
+            embed.add_field(name=f"{enemy['hp']}❤", value="\u200b")
+            embed.add_field(name=f"{enemy['power']}⚡", value="\u200b")
+            embed.add_field(name=f"나", value="\u200b", inline=False)
+            embed.add_field(name=f"{stat['hp']}❤", value='\u200b')
+            embed.add_field(name=f"{stat['power']}⛏", value='\u200b')
+            embed.set_thumbnail(url=enemy['url'])
+            view = ui.View(timeout=None)
+            attack = ui.Button(emoji="⛏", style=ButtonStyle.green)
+            view.add_item(attack)
+            attack.callback = attack_callback
+            try:
+                await interaction.response.edit_message(content="", embed=embed, view=view)
+            except discord.errors.InteractionResponded:
+                pass
+
+        async def meet_enemy():  # 적과 만났을때
+            embed = discord.Embed(title=enemy['name'])
+            embed.add_field(name=f"{enemy['hp']}❤", value="\u200b")
+            embed.add_field(name=f"{enemy['power']}⚡", value="\u200b")
+            embed.set_thumbnail(url=enemy['url'])
+            view = ui.View(timeout=None)
+            try_button = ui.Button(
+                label='도전하기', emoji='⛏', style=ButtonStyle.green)
+            run_button = ui.Button(
+                label='도망치기', emoji="👟", style=ButtonStyle.red)
+            view.add_item(try_button)
+            view.add_item(run_button)
+            try_button.callback = try_callback
+            run_button.callback = run_callback
+            await interaction.response.edit_message(embed=embed, view=view)
+        await meet_enemy()
+
+    async def stop_callback(interaction: Interaction):  # 탐험중단
         embed = discord.Embed(title="탐험 요약")
         result = 0
         for i in adventrue_inventory[interaction.user.id]['items']:
             result += i['amount']*i['price']
             embed.add_field(name=i['name'], value=f"{i['amount']}개")
         embed.set_footer(text=f"예상 수익 : {result}골드")
+        cur.execute("UPDATE user_info SET money = money + %s WHERE id = %s",
+                    (result, interaction.user.id))
+        con.commit()
         return await interaction.response.edit_message(content="", embed=embed, view=None)
 
-    async def start():
+    async def start():  # 기본 정비 함수
         rest = discord.Embed(title="정비")
-        weight = adventrue_inventory[interaction.user.id]['weight']
+        weight = abs(
+            round(adventrue_inventory[interaction.user.id]['weight'], 2))
+        disabled = stat['str'] < weight
         rest.add_field(
-            name=f"가방(용량:{abs(round(weight,3))}/{stat['str']})", value="\u200b",)
-        view = ui.View()
+            name=f"가방(용량:{weight}/{round(stat['str'],2)})", value="\u200b",)
+        view = ui.View(timeout=None)
         remove = ui.Button(label="아이템버리기", emoji="🗑", style=ButtonStyle.gray,
-                           disabled=(abs(round(weight)) == 0.0), row=2)
-        go = ui.Button(label="탐험진행", emoji='⛏', style=ButtonStyle.green)
-        stop = ui.Button(label="탐험중단", emoji="💨", style=ButtonStyle.red)
+                           disabled=(weight == 0.0), row=2)
+        go = ui.Button(label="탐험진행", emoji='⛏',
+                       disabled=disabled, style=ButtonStyle.green)
+        stop = ui.Button(label="탐험중단", emoji="💨",
+                         disabled=disabled, style=ButtonStyle.red)
         remove.callback = remove_callback
         go.callback = go_callback
         stop.callback = stop_callback
@@ -233,6 +411,6 @@ async def mining(interaction: Interaction):
         try:
             await interaction.response.send_message(embed=rest, view=view, ephemeral=True)
         except discord.errors.InteractionResponded:
-            await interaction.edit_original_response(embed=rest, view=view)
+            await interaction.edit_original_response(content="", embed=rest, view=view)
     await start()
-client.run("ODc0NjE1MDAxNTI3MjM0NTYw.G_BYi9.ZX5bNwCJTRRhLc67fyCwRmrc_nSsXksPsvfzwI")
+client.run("ODc0NjE1MDAxNTI3MjM0NTYw.Gm_WFj.18QpCNqtRXqYBwaP0Ht9d6DP0ol6jvKIPXeOYs")
