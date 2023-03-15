@@ -35,14 +35,14 @@ class MyClient(discord.Client):
                     "SELECT item_id FROM user_item WHERE id = %s ANd item_id = %s", (i[0], 4))
                 weekly_ticket = cur.fetchone()
                 if not weekly_ticket:
-                    cur.execute("INSERT INTO user_item VALUES(%s,%s,%s,%s,%s,%s,%s,%s)",
-                                (4, "주간광산 입장권", "주간광산에 입장할 수 있는 아이템이다.", "X", 0, False, i[0], ""))
+                    cur.execute("INSERT INTO user_item VALUES(%s,%s,%s,%s,%s,%s,%s)",
+                                (4, "주간광산 입장권", "주간광산에 입장할 수 있는 아이템이다.", "X", 0, False, i[0]))
                 cur.execute(
                     "UPDATE user_item SET amount = 1 WHERE item_id = %s", 4)
             if not daily_ticket:
                 cur.execute(
-                    "INSERT INTO user_item VALUES(%s,%s,%s,%s,%s,%s,%s,%s)",
-                    (2, "요일광산 입장권", "요일광산에 입장할 수 있는 아이템이다.", "X", 0, False, i[0], ""))
+                    "INSERT INTO user_item VALUES(%s,%s,%s,%s,%s,%s,%s)",
+                    (2, "요일광산 입장권", "요일광산에 입장할 수 있는 아이템이다.", "X", 0, False, i[0]))
 
         cur.execute("UPDATE user_item SET amount = 1 WHERE item_id = %s", 2)
         con.commit()
@@ -200,7 +200,7 @@ def setup():  # 데이터베이스 테이블 생성
                 (item_id INT PRIMARY KEY AUTO_INCREMENT,name TEXT,upgrade INT,`rank` TEXT,level INT,power INT,hp INT,str INT, part INT,wear BOOLEAN, trade BOOLEAN,id TEXT,url TEXT)""")
     # user_item 유저 아이템(아이템아이디,이름,등급,가격,설명,거래여부,아이디,이미지)
     cur.execute("""CREATE TABLE IF NOT EXISTS user_item
-                (item_id INT, name TEXT,`rank` TEXT, price INT,description TEXT,trade BOOLEAN,amount INT,id TEXT,url TEXT)""")
+                (item_id INT, name TEXT,`rank` TEXT, price INT,description TEXT,trade BOOLEAN,amount INT,id TEXT)""")
     # weapon 무기 테이블(이름,등급,레벨,힘,데미지,옵션,옵션확률,거래여부,이미지)
     cur.execute("""CREATE TABLE IF NOT EXISTS weapon
                 (name TEXT,`rank` TEXT,level INT,power TEXT, damage TEXT,`option` TEXT,option_percent TEXT,trade BOOLEAN,url TEXT)""")
@@ -210,6 +210,46 @@ def setup():  # 데이터베이스 테이블 생성
     # enemy 광석(이름,힘,체력,층,드롭아이템코드,드롭아이템확률,드롭아이템개수,유틸아이템코드,유틸아이템드롭확률,유틸아이템드롭개수,이미지)
     cur.execute("""CREATE TABLE IF NOT EXISTS enemy
                 (name TEXT,power INT,hp INT,floor INT,exp INT,item_code TEXT,item_percent TEXT,item_amount TEXT,util_code TEXT,util_percent TEXT,util_amount TEXT,url TEXT)""")
+
+
+@tree.command(guild=discord.Object(id=GUILD_ID), name="아이템거래", description="거래")
+async def trade(interaction: Interaction, 유저: discord.Member, 코드: int, 개수: int):
+    if not authorize(interaction.user.id) or not authorize(유저.id):
+        return await interaction.response.send_message("`회원가입`이 필요하거나 상대방이 가입하지 않았습니다. ", ephemeral=True)
+    cur = con.cursor()
+    cur.execute("SELECT trade,amount FROM user_item WHERE id = %s AND item_id = %s",
+                (interaction.user.id, 코드))
+    try:
+        canTrade, amount = cur.fetchone()
+    except:
+        return await interaction.response.send_message("아이템이 없습니다", ephemeral=True)
+    else:
+        if canTrade:
+            if amount >= 개수:
+                cur.execute(
+                    "UPDATE user_item SET amount = amount - %s WHERE id = %s AND item_id = %s", (개수, interaction.user.id, 코드))
+                cur.execute(
+                    "SELECT amount FROM user_item WHERE id = %s AND item_id = %s", (유저.id, 코드))
+                if cur.fetchone():
+                    cur.execute(
+                        "UPDATE user_item SET amount = amount + %s WHERE id = %s AND item_id = %s", (개수, 유저.id, 코드))
+                else:
+                    item_json = open('./final/json/util.json',
+                                     'r', encoding="utf-8")
+                    item_data: dict = json.load(item_json)
+                    item = [코드]
+                    for i in item_data[str(코드)].values():
+                        item.append(i)
+                    item.append(개수)
+                    item.append(유저.id)
+                    cur.execute(
+                        "INSERT INTO user_item VALUES(%s,%s,%s,%s,%s,%s,%s,%s)", item)
+                con.commit()
+                return await interaction.response.send_message(f"`{유저.display_name}`님에게 `{item_data[str(코드)]['name']}`를 `{개수}` 개 전달했습니다.", ephemeral=True)
+            else:
+                return await interaction.response.send_message("아이템이 부족합니다.", ephemeral=True)
+        else:
+            return await interaction.response.send_message("거래할 수 없는 아이템 입니다.", ephemeral=True)
 
 
 @tree.command(guild=discord.Object(id=GUILD_ID), name="스텟", description="스테이터스")
@@ -314,7 +354,7 @@ async def inventory(interaction: Interaction):
         cur.execute("SELECT COUNT(*) FROM user_item WHERE id = %s",
                     interaction.user.id)
         count = cur.fetchone()[0]
-        cur.execute("SELECT name,description,`rank`,price,trade,amount,url FROM user_item WHERE id = %s ORDER BY item_id ASC LIMIT %s,10",
+        cur.execute("SELECT name,description,`rank`,price,trade,amount FROM user_item WHERE id = %s ORDER BY item_id ASC LIMIT %s,10",
                     (interaction.user.id, page[interaction.user.id] * 10))
         embed = discord.Embed(title="인벤토리")
         for i in cur.fetchall():
@@ -510,7 +550,7 @@ async def mining(interaction: Interaction, 광산: miningEnum):
                         item.append(total)
                         item.append(interaction.user.id)
                         cur.execute(
-                            "INSERT INTO user_item(item_id,name,description,`rank`,price,trade,url,amount,id) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s)", item)
+                            "INSERT INTO user_item(item_id,name,description,`rank`,price,trade,amount,id) VALUES(%s,%s,%s,%s,%s,%s,%s,%s)", item)
                     else:
                         cur.execute(
                             "UPDATE user_item SET amount = amount + %s WHERE id = %s", (total, interaction.user.id))
@@ -608,7 +648,7 @@ async def mining(interaction: Interaction, 광산: miningEnum):
         rest = discord.Embed(title="정비")
         weight = abs(
             round(adventrue_inventory[interaction.user.id]['weight'], 2))
-        disabled = round(stat['str'], 2) < weight-0.01
+        disabled = round(stat['str'], 2) < weight-0.001
         rest.add_field(
             name=f"가방(용량:{weight}/{round(stat['str'],2)})", value="\u200b",)
         rest.add_field(name=광산.name, value='\u200b', inline=False)
