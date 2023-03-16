@@ -68,6 +68,7 @@ tree = app_commands.CommandTree(client)
 con = pymysql.connect(host='localhost', password='0000',
                       user='root', port=3306, database='miner', charset='utf8')
 adventrue_inventory = {}
+weapon_rein_dic = {}
 mining_dic = {}
 cnt = {}
 
@@ -85,12 +86,16 @@ class statusEnum(Enum):
     크리티컬데미지 = 'crit_damage'
 
 
+class rankingEnum(Enum):
+    레벨 = 'level'
+    자산 = 'money'
+
+
 def block_exp(level: int, exp: int):
     guild = client.get_guild(884259665964314655)
     name = ["0_", "1_", "2_", "3_", "4_", "5_", "6_", "7_", "8_", "9_", "10"]
     block = [discord.utils.get(guild.emojis, name=i) for i in name]
-    level_file = open("./final/json/level.json", "r", encoding="utf-8")
-    level_info = json.load(level_file)
+    level_info = getJson('./final/json/level.json')
     percent = round(exp/level_info[str(level)]*100)
     string = ''
     cnt = 0
@@ -106,8 +111,7 @@ def block_exp(level: int, exp: int):
 
 
 def is_levelup(level: int, exp: int, id: int):
-    level_file = open("./final/json/level.json", "r", encoding="utf-8")
-    level_info = json.load(level_file)
+    level_info = getJson('./final/json/level.json')
     num = 0
     while level_info[str(level+num)] <= exp:
         exp -= level_info[str(level+num)]
@@ -153,6 +157,12 @@ def authorize(id: int):  # 유저 정보가 있으면 True
     cur = con.cursor()
     cur.execute("SELECT * FROM user_info WHERE id = %s", id)
     return cur.fetchone() != None
+
+
+def getJson(url: str):
+    file = open(url, 'r', encoding="utf-8")
+    data = json.load(file)
+    return data
 
 
 def getStatus(id: int):  # 유저 스텟 불러오기
@@ -212,6 +222,144 @@ def setup():  # 데이터베이스 테이블 생성
                 (name TEXT,power INT,hp INT,floor INT,exp INT,item_code TEXT,item_percent TEXT,item_amount TEXT,util_code TEXT,util_percent TEXT,util_amount TEXT,url TEXT)""")
 
 
+@tree.command(guild=discord.Object(id=GUILD_ID), name="무기강화", description="무기강화")
+async def reinforce_weapon(interaction: Interaction):
+    try:
+        if weapon_rein_dic[interaction.user.id]:
+            return await interaction.response.send_message("강화할 수 없습니다.", ephemeral=True)
+    except KeyError:
+        weapon_rein_dic[interaction.user.id] = True
+
+    if not authorize(interaction.user.id):
+        return await interaction.response.send_message("`회원가입` 명령어로 먼저 가입을 해주세요.", ephemeral=True)
+    cur = con.cursor()
+    reinforce_info = getJson('./final/json/reinforce.json')
+
+    async def setup(interaction: Interaction):
+        disabled = False
+        cur.execute("SELECT upgrade,`rank`,name FROM user_weapon WHERE id = %s AND wear = 1",
+                    interaction.user.id)
+        item = makeDictionary(['upgrade', 'rank', 'name'], cur.fetchone())
+        if item['upgrade'] == 25:
+            try:
+                await interaction.response.send_message("이미 25강화를 완료한 아이템입니다.", ephemeral=True)
+            except discord.errors.InteractionResponded:
+                await interaction.edit_original_response("25강화를 완료 했습니다.")
+            return
+        embed = discord.Embed(
+            title=f"{item['name']}[{item['rank']}] +{item['upgrade']} 강화")
+        req_percent = reinforce_info['percent'][str(item["upgrade"]+1)]
+        req_money = reinforce_info['money'][item['rank']][str(
+            item['upgrade']+1)]
+        req_item = reinforce_info['item'][item['rank']][str(item['upgrade']+1)]
+        stat = reinforce_info['stat'][item['rank']][str(item['upgrade']+1)]
+        embed.add_field(
+            name=f"강화 확률 : {req_percent}%", value="\u200b")
+        embed.add_field(
+            name=f"강화 비용 : {req_money}💰", value="\u200b")
+        cur.execute("SELECT money FROM user_info WHERE id = %s",
+                    interaction.user.id)
+        money = cur.fetchone()[0]
+        if money < req_money:
+            disabled = True
+        utils = []
+        names = []
+        amounts = []
+        for i in req_item.split(" "):
+            util, amount = i.split("/")
+            embed.add_field(name=f"강화재료 : {util} {amount}개", value="\u200b")
+            cur.execute("SELECT amount FROM user_item WHERE id = %s AND name = %s ORDER BY trade ASC",
+                        (interaction.user.id, util))
+            names.append(util)
+            amounts.append(int(amount))
+            user_amount = 0
+            dump = []
+            for j in cur.fetchall():
+                user_amount += j[0]
+                dump.append(j[0])
+            utils.append(dump)
+            if user_amount < amounts[-1]:
+                disabled = True
+
+        embed.set_footer(
+            text=f"강화 성공시 힘 + {stat}")
+        view = ui.View(timeout=1800)
+        button = ui.Button(label="강화하기", disabled=disabled,
+                           style=ButtonStyle.green)
+        if disabled:
+            weapon_rein_dic[interaction.user.id] = False
+        view.add_item(button)
+        back = ui.Button(label="끝내기", style=ButtonStyle.red)
+        view.add_item(back)
+
+        async def back_callback(interacation: Interaction):
+            weapon_rein_dic[interaction.user.id] = False
+            await interacation.response.edit_message(content=".", embed=None, view=None)
+            await interacation.delete_original_response()
+
+        async def button_callback(interaction: Interaction):
+            cur = con.cursor()
+            for i in range(len(names)):
+                if utils[i][0] < amounts[i]:
+                    cur.execute("UPDATE user_item SET amount = 0 WHERE id = %s AND trade = 0 AND name = %s",
+                                (interaction.user.id, names[i]))
+                    cur.execute("UPDATE user_item SET amount = amount - %s WHERE id = %s AND trade = 1 AND name = %s",
+                                (amounts[i]-utils[i][0], interaction.user.id, names[i]))
+                elif len(utils[i]) == 2:
+                    cur.execute("UPDATE user_item SET amount = amount - %s WHERE id = %s AND trade = 0 AND name = %s",
+                                (amounts[i], interaction.user.id, names[i]))
+                else:
+                    cur.execute("UPDATE user_item SET amount = amount - %s WHERE id = %s AND name = %s",
+                                (amounts[i], interaction.user.id, names[i]))
+            cur.execute("UPDATE user_info SET money = money - %s WHERE id = %s",
+                        (req_money, interaction.user.id))
+            if getSuccess(req_percent, 100):
+                cur.execute("UPDATE user_weapon SET upgrade = upgrade + 1 , power = power + %s WHERE id = %s AND wear = 1 ",
+                            (stat, interaction.user.id))
+                if item["upgrade"]+1 >= 20:
+                    await interaction.channel.send(f"`{interaction.user.display_name}`님이 `{item['name']} +{item['upgrade']+1}` 강화에 성공했습니다!")
+                await interaction.response.edit_message(content="강화에 성공했습니다!", view=None, embed=None)
+            else:
+                await interaction.response.edit_message(content="강화에 실패했습니다!", view=None, embed=None)
+            await asyncio.sleep(2)
+            await setup(interaction)
+            con.commit()
+        back.callback = back_callback
+        button.callback = button_callback
+        try:
+            await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+        except discord.errors.InteractionResponded:
+            await interaction.edit_original_response(embed=embed, view=view)
+    await setup(interaction)
+
+
+@tree.command(guild=discord.Object(id=GUILD_ID), name="랭킹", description="랭킹")
+async def ranking(interaction: Interaction, 종류: rankingEnum):
+    if not authorize(interaction.user.id):
+        return await interaction.response.send_message("`회원가입` 명령어로 먼저 가입을 해주세요.", ephemeral=True)
+    cur = con.cursor()
+    embed = discord.Embed(title=f'{종류.name} 랭킹')
+    if 종류.value == "level":
+        cur.execute(
+            "SELECT nickname,level,exp FROM user_info ORDER BY level DESC, exp DESC, create_at ASC LIMIT 0,20 ")
+        for i in cur.fetchall():
+            block, require = block_exp(i[1], i[2])
+            embed.add_field(
+                name=f"{i[0]} Lv.{i[1]} ({i[2]}/{require})", value=block, inline=False)
+        cur.execute(
+            "SELECT DENSE_RANK() OVER (ORDER BY level DESC, exp DESC, create_at ASC) RANKING FROM user_info WHERE id = %s", interaction.user.id)
+    elif 종류.value == "money":
+        cur.execute(
+            "SELECT nickname,money FROM user_info ORDER BY money DESC, create_at ASC LIMIT 0,20")
+        for i in cur.fetchall():
+            embed.add_field(name=f"{i[0]} {i[1]}💰",
+                            value="\u200b", inline=False)
+        cur.execute(
+            "SELECT DENSE_RANK() OVER (ORDER BY money DESC, create_at ASC) RANKING FROM user_info WHERE id= %s", interaction.user.id)
+    embed.set_footer(text=f"내 순위 : {cur.fetchone()[0]}위")
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
 @tree.command(guild=discord.Object(id=GUILD_ID), name="아이템거래", description="거래")
 async def trade(interaction: Interaction, 유저: discord.Member, 코드: int, 개수: int):
     if not authorize(interaction.user.id) or not authorize(유저.id):
@@ -234,9 +382,7 @@ async def trade(interaction: Interaction, 유저: discord.Member, 코드: int, �
                     cur.execute(
                         "UPDATE user_item SET amount = amount + %s WHERE id = %s AND item_id = %s", (개수, 유저.id, 코드))
                 else:
-                    item_json = open('./final/json/util.json',
-                                     'r', encoding="utf-8")
-                    item_data: dict = json.load(item_json)
+                    item_data: dict = getJson('./final/json/util.json')
                     item = [코드]
                     for i in item_data[str(코드)].values():
                         item.append(i)
@@ -283,7 +429,7 @@ async def register(interaction: Interaction, 닉네임: str):
         await interaction.response.send_message("아이디가 있습니다.", ephemeral=True)
     else:
         cur.execute("""INSERT INTO user_info(nickname,id,exp,level,money,role,create_at) 
-                    VALUES(%s,%s,%s,%s,%s,%s,%s)""", (닉네임, interaction.user.id, 0, 1, 100, 0, datetime.today()))
+                    VALUES(%s,%s,%s,%s,%s,%s,%s)""", (닉네임, interaction.user.id, 0, 1, 100, 0, datetime.datetime.today()))
         cur.execute("INSERT INTO user_stat(id,power,hp,str,crit,crit_damage,point) VALUES(%s,%s,%s,%s,%s,%s,%s)",
                     (interaction.user.id, 1, 5, 5, 5, 50, 0))
         cur.execute("""INSERT INTO user_weapon(name,upgrade,`rank`,level,power,damage,wear,trade,id,url)
@@ -358,8 +504,9 @@ async def inventory(interaction: Interaction):
                     (interaction.user.id, page[interaction.user.id] * 10))
         embed = discord.Embed(title="인벤토리")
         for i in cur.fetchall():
-            embed.add_field(
-                name=f"{i[0]}[{i[2]}]({'거래가능' if i[4]==1 else '거래불가'}) {i[5]}개", value=i[1], inline=False)
+            if i[5] > 0:
+                embed.add_field(
+                    name=f"{i[0]}[{i[2]}]({'거래가능' if i[4]==1 else '거래불가'}) {i[5]}개", value=i[1], inline=False)
         embed.set_footer(text=f"{page[interaction.user.id]+1} 페이지")
         view = ui.View(timeout=None)
         previous = ui.Button(
@@ -489,10 +636,8 @@ async def mining(interaction: Interaction, 광산: miningEnum):
             await start()
 
         async def win(interaction: Interaction):  # 이겼을때
-            item_json = open('./final/json/stone.json', 'r', encoding='utf-8')
-            util_json = open('./final/json/util.json', 'r', encoding='utf-8')
-            util_data = json.load(util_json)
-            stone_data = json.load(item_json)
+            util_data = getJson('./final/json/util.json')
+            stone_data = getJson('./final/json/stone.json')
             util_code = enemy['util_code'].split(" ")
             util_percent = enemy['util_percent'].split(" ")
             util_amount = enemy['util_amount'].split(" ")
