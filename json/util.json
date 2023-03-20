@@ -26,5 +26,26 @@
     "rank": "X",
     "price": 0,
     "trade": false
+  },
+  "5": {
+    "name": "광석의 핵",
+    "description": "광석의 힘이 담겨있는 핵이다.",
+    "rank": "F",
+    "price": 150,
+    "trade": true
+  },
+  "6": {
+    "name": "동물 가죽",
+    "description": "광석이 왜 가지고 있는지 모를 가죽이다.",
+    "rank": "F",
+    "price": 30,
+    "trade": true
+  },
+  "7": {
+    "name": "빛나는 강화서",
+    "description": "강화에 이용되는 강화서다.",
+    "rank": "E",
+    "price": 500,
+    "trade": false
   }
 }
