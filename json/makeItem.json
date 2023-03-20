@@ -1,5 +1,23 @@
 {
-  "weapon": {},
+  "weapon": [
+    {
+      "초심자 곡괭이": {
+        "name": "초심자 곡괭이",
+        "rank": "F",
+        "level": 10,
+        "power": "6 10",
+        "damage": "100 120",
+        "trade": false,
+        "url": "https://cdn.discordapp.com/attachments/988424121878741022/1087364454859145267/novice_pickaxe.png",
+        "required": {
+          "5": 2,
+          "6": 10,
+          "1": 5
+        },
+        "percent":100
+      }
+    }
+  ],
   "wear": [
     {
       "광부모자": {
@@ -17,19 +35,21 @@
           "5": 1,
           "6": 5
         },
-        "percent":100
+        "percent": 100
       }
     }
   ],
 
-  "item": [{
-    "빛나는 강화서":{
-      "code":"7",
-      "percent":95,
-      "required":{
-        "1":3,
-        "6":2
+  "item": [
+    {
+      "빛나는 강화서": {
+        "code": "7",
+        "percent": 95,
+        "required": {
+          "1": 3,
+          "6": 2
+        }
       }
     }
-  }]
+  ]
 }
