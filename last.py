@@ -856,9 +856,9 @@ async def info(interaction: Interaction, 유저: discord.Member = None):
         string_block, level_info = block_exp(user['level'], user['exp'])
         money = format(user['money'], ",")
         exp = format(user['exp'], ",")
-        level_info = format(level_info, ",")
+        level_info_comma = format(level_info, ",")
         embed.add_field(
-            name=f"Lv. {user['level']} {exp}/{level_info}({round(user['exp']/level_info*100)}%)", value=string_block, inline=True)
+            name=f"Lv. {user['level']} {exp}/{level_info_comma}({round(user['exp']/level_info*100)}%)", value=string_block, inline=True)
         embed.add_field(name=f"돈 : \n{money}💰", value="\u200b", inline=True)
         embed.add_field(
             name=f"무릉 : \n{user['moorong']}층", value="\u200b", inline=True)
