@@ -11,7 +11,9 @@ import math
 import asyncio
 import json
 import os
+from dotenv import load_dotenv
 
+load_dotenv()
 
 GUILD_ID = '934824600498483220'
 LEVEL_PER_STAT = 2
@@ -1040,14 +1042,17 @@ async def inventory(interaction: Interaction, 종류: makeItemEnum):
             label="이전으로", disabled=not page[interaction.user.id] > 0)
         next = ui.Button(label="다음으로", disabled=not (
             page[interaction.user.id]+1)*10 < count)
+        reset = ui.Button(label="새로고침")
         view.add_item(previous)
         view.add_item(next)
+        view.add_item(reset)
         if category != 'item':
             checkout = ui.Button(label="선택하기", style=ButtonStyle.green, row=2)
             view.add_item(checkout)
             checkout.callback = checkout_callback
         previous.callback = previous_callback
         next.callback = next_callback
+        reset.callback = setup
         try:
             await interaction.response.edit_message(embed=embed, view=view)
         except discord.errors.InteractionResponded:
