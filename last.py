@@ -235,6 +235,8 @@ def is_levelup(level: int, exp: int, id: int):
 
 
 def makeDictionary(keys: list, values: tuple):
+    if not values:
+        return False
     dictionary = {}
     for i in range(len(keys)):
         dictionary.update({keys[i]: values[i]})
