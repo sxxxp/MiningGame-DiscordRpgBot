@@ -67,8 +67,8 @@ class MyClient(discord.Client):
 intents = discord.Intents.all()
 client = MyClient(intents=intents)
 tree = app_commands.CommandTree(client)
-con = pymysql.connect(host='localhost', password='0000',
-                      user='root', port=3306, database='miner', charset='utf8')
+con = pymysql.connect(host=os.environ['host'], password=os.environ['password'],
+                      user=os.environ['user'], port=os.environ['port'], database=os.environ['database'], charset='utf8')
 adventrue_inventory = {}
 weapon_rein_dic = {}
 mining_dic = {}
