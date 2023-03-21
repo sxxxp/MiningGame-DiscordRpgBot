@@ -14,7 +14,7 @@
           "6": 10,
           "1": 5
         },
-        "percent":100
+        "percent": 100
       }
     }
   ],
@@ -34,6 +34,25 @@
         "required": {
           "5": 1,
           "6": 5
+        },
+        "percent": 100
+      }
+    },
+    {
+      "광부갑옷": {
+        "name": "광부갑옷",
+        "rank": "F",
+        "level": 10,
+        "power": "0 1",
+        "hp": "5 10",
+        "str": "2 4",
+        "collection": "기본 방어구",
+        "part": 2,
+        "trade": false,
+        "url": "",
+        "required": {
+          "5": 1,
+          "6": 15
         },
         "percent": 100
       }

@@ -1117,6 +1117,7 @@ async def mooroong(interaction: Interaction):
             cur = con.cursor()
             cur.execute("UPDATE user_info SET mooroong = %s WHERE id = %s",
                         (floor[interaction.user.id], interaction.user.id))
+            con.commit()
             await interaction.response.edit_message(content="", embed=embed, view=None)
 
         async def attack_callback(interaction: Interaction):  # 공격했을때
