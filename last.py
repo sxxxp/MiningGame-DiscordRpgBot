@@ -979,7 +979,7 @@ async def mining(interaction: Interaction, 광산: miningEnum):
             name, amount, weight = items.values[0].split("-")
             if name == "bug":
                 await interaction.response.edit_message(content="버그가 고쳐졌습니다.")
-                return await start()
+                return await start(interaction)
 
             class amountModal(ui.Modal, title=f"{name} {amount}개"):
                 answer = ui.TextInput(
@@ -1005,7 +1005,7 @@ async def mining(interaction: Interaction, 광산: miningEnum):
                                         name)
                                 break
                         await interaction.response.edit_message(content=f"{name}을 {self.answer.value}개 버렸습니다.\n중량 -{round(int(self.answer.value)*float(weight),3)}")
-                        await start()
+                        await start(interaction)
             await interaction.response.send_modal(amountModal())
         items.callback = item_remove_callback
         await interaction.response.edit_message(view=view)
@@ -1020,11 +1020,11 @@ async def mining(interaction: Interaction, 광산: miningEnum):
 
         async def run_callback(interaction: Interaction):  # 도망치기
             await interaction.response.edit_message(content="도망쳤습니다.")
-            return await start()
+            return await start(interaction)
 
         async def end_win_callback(interaction: Interaction):  # 전투 끝날때
             await interaction.response.edit_message(content="재정비...")
-            await start()
+            await start(interaction)
 
         async def win(interaction: Interaction):  # 이겼을때
             util_data = getJson('./json/util.json')
