@@ -73,6 +73,11 @@ mining_dic = {}
 cnt = {}
 
 
+class wearEnum(Enum):
+    투구 = 1
+    갑옷 = 2
+
+
 class makeItemEnum(Enum):
     무기 = "weapon"
     방어구 = "wear"
@@ -460,6 +465,11 @@ async def makeItem(interaction: Interaction, 종류: makeItemEnum):
             await interaction.edit_original_response(embed=embed, view=view)
 
     await setup(interaction)
+
+
+@tree.command(name="방어구강화", description="방어구강화")
+async def reinforce_wear(interaction: Interaction, 종류: wearEnum):
+    pass
 
 
 @tree.command(name="무기강화", description="무기강화")
