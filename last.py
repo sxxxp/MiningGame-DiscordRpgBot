@@ -499,6 +499,7 @@ async def reinforce_weapon(interaction: Interaction, 종류: reinEnum):
         weapon_rein_dic[interaction.user.id] = True
 
     if not authorize(interaction.user.id):
+        weapon_rein_dic[interaction.user.id] = False
         return await interaction.response.send_message("`회원가입` 명령어로 먼저 가입을 해주세요.", ephemeral=True)
     cur = con.cursor()
     reinforce_info = getJson('./json/reinforce.json')
@@ -519,9 +520,11 @@ async def reinforce_weapon(interaction: Interaction, 종류: reinEnum):
                 item = makeDictionary(
                     ['upgrade', 'rank', 'name'], cur.fetchone())
             if not item:
+                weapon_rein_dic[interaction.user.id] = False
                 return await interaction.response.send_message("아이템을 장착하지 않았습니다.", ephemeral=True)
         if item['upgrade'] == 25:
             con.commit()
+            weapon_rein_dic[interaction.user.id] = False
             try:
                 await interaction.response.send_message("이미 25강화를 완료한 아이템입니다.", ephemeral=True)
             except discord.errors.InteractionResponded:
