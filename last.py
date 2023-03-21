@@ -125,7 +125,7 @@ def getItem(name: str, index: int, id: int, cnt: int):
 
 def getWear(name: str, index: int, id: int):
     cur = con.cursor()
-    items = getJson("./final/json/makeItem.json")
+    items = getJson("./json/makeItem.json")
     item = items['wear'][index][name]
     a, b = item['power'].split(" ")
     power = random.randint(int(a), int(b))
@@ -142,7 +142,7 @@ def getWear(name: str, index: int, id: int):
 
 def getWeapon(name: str, index: int, id: int):
     cur = con.cursor()
-    items = getJson("./final/json/makeItem.json")
+    items = getJson("./json/makeItem.json")
     item = items['weapon'][index][name]
     a, b = item['power'].split(" ")
     power = random.randint(int(a), int(b))
@@ -313,8 +313,8 @@ def setup():  # 데이터베이스 테이블 생성
 async def makeItem(interaction: Interaction, 종류: makeItemEnum):
     if not authorize(interaction.user.id):
         return await interaction.response.send_message("`회원가입` 명령어로 먼저 가입을 해주세요.", ephemeral=True)
-    items: dict = getJson("./final/json/makeItem.json")
-    utils: dict = getJson("./final/json/util.json")
+    items: dict = getJson("./json/makeItem.json")
+    utils: dict = getJson("./json/util.json")
     category = 종류.value
     page = {}
     page[interaction.user.id] = 0
