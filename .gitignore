@@ -1,4 +1,3 @@
-png/*.png
-pixil/*.pixil
-
+png
+pixil
 .env
