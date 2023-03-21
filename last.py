@@ -56,8 +56,6 @@ class MyClient(discord.Client):
 
     async def on_ready(self):
         await self.wait_until_ready()
-        await tree.sync()
-
         setup()
         self.reward.start()
         print(f"{self.user} 에 로그인하였습니다!")
@@ -1184,7 +1182,7 @@ async def mining(interaction: Interaction, 광산: miningEnum):
         mining_dic[interaction.user.id] = False
         return await interaction.response.edit_message(content="", embed=embed, view=None)
 
-    async def start():  # 기본 정비 함수
+    async def start(interaction: Interaction):  # 기본 정비 함수
         rest = discord.Embed(title="정비")
         weight = abs(
             round(adventrue_inventory[interaction.user.id]['weight'], 2))
@@ -1217,5 +1215,5 @@ async def mining(interaction: Interaction, 광산: miningEnum):
             await interaction.response.send_message(embed=rest, view=view, ephemeral=True)
         except discord.errors.InteractionResponded:
             await interaction.edit_original_response(content="", embed=rest, view=view)
-    await start()
+    await start(interaction)
 client.run(os.environ['token'])
