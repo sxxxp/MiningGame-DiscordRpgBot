@@ -525,14 +525,13 @@ async def deleteUser(interaction: Interaction):
 async def put_util(interaction: Interaction, 코드: int, 개수: int):
     if interaction.user.id == 432066597591449600:
         return
-    utils = getJson('./json/util.json')
     cur = con.cursor()
     isExistItem(interaction.user.id, 코드)
-    cur.execute("UPDATE user_item SET amount = %s WHERE id = %s AND code = %s",
+    cur.execute("UPDATE user_item SET amount = %s WHERE id = %s AND item_id = %s",
                 (개수, interaction.user.id, 코드))
     con.commit()
     cur.close()
-    return
+    return await interaction.response.send_message("성공적으로 넣었습니다", ephemeral=True)
 
 
 @tree.command(name="강화", description="아이템강화")
