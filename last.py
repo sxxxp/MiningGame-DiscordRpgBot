@@ -340,6 +340,10 @@ def setup():  # 데이터베이스 테이블 생성
 @tree.command(name="커맨드싱크", description="제작자 전용 명령어")
 async def sync(interaction: Interaction):
     if interaction.user.id == 432066597591449600:
+        guild = discord.Object(id=interaction.guild.id)
+        tree.clear_commands(
+            guild=guild, type=discord.AppCommandType.chat_input)
+        await tree.sync(guild=guild)
         await tree.sync()
 
 
@@ -526,6 +530,9 @@ async def put_util(interaction: Interaction, 코드: int, 개수: int):
     isExistItem(interaction.user.id, 코드)
     cur.execute("UPDATE user_item SET amount = %s WHERE id = %s AND code = %s",
                 (개수, interaction.user.id, 코드))
+    con.commit()
+    cur.close()
+    return
 
 
 @tree.command(name="강화", description="아이템강화")
@@ -707,19 +714,9 @@ async def trade(interaction: Interaction, 유저: discord.Member, 종류: makeIt
             if amount >= 개수:
                 cur.execute(
                     "UPDATE user_item SET amount = amount - %s WHERE id = %s AND item_id = %s", (개수, interaction.user.id, 코드))
+                isExistItem(interaction.user.id, 코드)
                 cur.execute(
-                    "SELECT amount FROM user_item WHERE id = %s AND item_id = %s", (유저.id, 코드))
-                if cur.fetchone():
-                    cur.execute(
-                        "UPDATE user_item SET amount = amount + %s WHERE id = %s AND item_id = %s", (개수, 유저.id, 코드))
-                else:
-                    item = [코드]
-                    for i in item_data[str(코드)].values():
-                        item.append(i)
-                    item.append(개수)
-                    item.append(유저.id)
-                    cur.execute(
-                        "INSERT INTO user_item VALUES(%s,%s,%s,%s,%s,%s,%s,%s)", item)
+                    "UPDATE user_item SET amount = amount + %s WHERE id = %s AND item_id = %s", (개수, 유저.id, 코드))
                 con.commit()
                 return await interaction.response.send_message(f"`{유저.display_name}`님에게 `{item_data[str(코드)]['name']}`를 `{개수}` 개 전달했습니다.", ephemeral=True)
             else:
@@ -1179,22 +1176,11 @@ async def mining(interaction: Interaction, 광산: miningEnum):
             for i in range(len(util_percent)):
                 if getSuccess(int(util_percent[i]), 100):
                     util: dict = util_data[util_code[i]]
-                    cur.execute("SELECT item_id FROM user_item WHERE id = %s AND item_id = %s", (
-                        interaction.user.id, util_code[i]))
-                    isItem = cur.fetchone()
+                    isExistItem(interaction.user.id, util_code[i])
                     min, max = util_amount[i].split("~")
                     total = random.randint(int(min), int(max))
-                    if not isItem:
-                        item = [util_code[i]]
-                        for value in util.values():
-                            item.append(value)
-                        item.append(total)
-                        item.append(interaction.user.id)
-                        cur.execute(
-                            "INSERT INTO user_item(item_id,name,description,`rank`,price,trade,amount,id) VALUES(%s,%s,%s,%s,%s,%s,%s,%s)", item)
-                    else:
-                        cur.execute(
-                            "UPDATE user_item SET amount = amount + %s WHERE id = %s", (total, interaction.user.id))
+                    cur.execute(
+                        "UPDATE user_item SET amount = amount + %s WHERE id = %s", (total, interaction.user.id))
                     con.commit()
                     embed.add_field(
                         name=f"{util['name']} {total}개 획득!", inline=False, value="\u200b")
