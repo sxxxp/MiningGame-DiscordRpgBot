@@ -1138,7 +1138,6 @@ async def mooroong(interaction: Interaction):
             embed.add_field(name=f"나", value="\u200b", inline=False)
             embed.add_field(name=f"{stat['hp']}❤", value='\u200b')
             embed.add_field(name=f"{stat['power']}⛏", value='\u200b')
-            embed.set_thumbnail(url=enemy['url'])
             view = ui.View(timeout=None)
             attack = ui.Button(emoji="⛏", style=ButtonStyle.green)
             view.add_item(attack)
