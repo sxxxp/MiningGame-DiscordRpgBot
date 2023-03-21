@@ -1114,6 +1114,9 @@ async def mooroong(interaction: Interaction):
         async def lose(interaction: Interaction):  # 졌을때
             embed = discord.Embed(
                 title=f"기절했습니다. {floor[interaction.user.id]}층 도달.")
+            cur = con.cursor()
+            cur.execute("UPDATE user_info SET mooroong = %s WHERE id = %s",
+                        (floor[interaction.user.id], interaction.user.id))
             await interaction.response.edit_message(content="", embed=embed, view=None)
 
         async def attack_callback(interaction: Interaction):  # 공격했을때
@@ -1147,21 +1150,7 @@ async def mooroong(interaction: Interaction):
             except discord.errors.InteractionResponded:
                 pass
 
-        async def meet_enemy():  # 적과 만났을때
-            embed = discord.Embed(title=enemy['name'])
-            embed.add_field(name=f"{enemy['hp']}❤", value="\u200b")
-            embed.add_field(name=f"{enemy['power']}⚡", value="\u200b")
-            view = ui.View(timeout=None)
-            try_button = ui.Button(
-                label='도전하기', emoji='⛏', style=ButtonStyle.green)
-            run_button = ui.Button(
-                label='도망치기', emoji="👟", style=ButtonStyle.red)
-            view.add_item(try_button)
-            view.add_item(run_button)
-            try_button.callback = try_callback
-            run_button.callback = run_callback
-            await interaction.response.edit_message(embed=embed, view=view)
-        await meet_enemy()
+        await try_callback(interaction)
 
     async def start(interaction: Interaction):  # 기본 정비 함수
         rest = discord.Embed(title="정비")
