@@ -568,7 +568,7 @@ async def reinforce_weapon(interaction: Interaction, 종류: reinEnum):
         stat_name = getPartRein(종류.value)
         embed.set_footer(
             text=f"강화 성공시 {stat_name} + {stat}")
-        view = ui.View(timeout=1800)
+        view = ui.View(timeout=None)
         button = ui.Button(label="강화하기", disabled=disabled,
                            style=ButtonStyle.green)
         if disabled:
@@ -719,6 +719,15 @@ async def status(interaction: Interaction, 스텟: statusEnum, 포인트: int):
             con.commit()
             message = f'`{스텟.name} +{포인트}`'
     await interaction.response.send_message(message, ephemeral=True)
+
+
+@tree.command(name="강화초기화", description="운영자를 부르세요.")
+async def reinforceReset(interaction: Interaction, 유저: discord.Member):
+    if interaction.user.id == 432066597591449600:
+        reinforce_weapon[유저.id] = False
+    else:
+        author = await client.fetch_user(432066597591449600)
+        await author.send(f"{interaction.user}님의 호출이에요.")
 
 
 @tree.command(name="회원가입", description="회원가입입니다.")
