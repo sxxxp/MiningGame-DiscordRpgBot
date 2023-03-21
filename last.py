@@ -490,6 +490,31 @@ async def makeItem(interaction: Interaction, 종류: makeItemEnum):
     await setup(interaction)
 
 
+@tree.command(name="캐릭터삭제", description="캐릭터 삭제")
+async def deleteUser(interaction: Interaction):
+    class deleteModal(ui.Modal, title="캐릭터삭제"):
+        answer = ui.TextInput(label="캐릭터를 한번 삭제하면 되돌릴 수 없어요.",
+                              placeholder="'캐릭터삭제' 라고 적어주세요.")
+
+        async def on_submit(self, interaction: Interaction):
+            if self.answer.value == "캐릭터삭제":
+                cur = con.cursor()
+                cur.execute("DELETE FROM user_info WHERE id = %s",
+                            interaction.user.id)
+                cur.execute("DELETE FROM user_stat WHERE id = %s",
+                            interaction.user.id)
+                cur.execute("DELETE FROM user_wear WHERE id = %s",
+                            interaction.user.id)
+                cur.execute("DELETE FROM user_weapon WHERE id = %s",
+                            interaction.user.id)
+                cur.execute("DELETE FROM user_item WHERE id = %s",
+                            interaction.user.id)
+                return await interaction.response.send_message("성공적으로 캐릭터를 삭제했습니다.", ephemeral=True)
+            else:
+                return await interaction.response.send_message("캐릭터 삭제 실패", ephemeral=True)
+    await interaction.response.send_modal(deleteModal())
+
+
 @tree.command(name="강화", description="아이템강화")
 async def reinforce_weapon(interaction: Interaction, 종류: reinEnum):
     try:
