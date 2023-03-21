@@ -58,8 +58,6 @@ class MyClient(discord.Client):
         await self.wait_until_ready()
         setup()
         self.reward.start()
-        # for i in client.guilds:
-        # await
         # guild = discord.Object(id=GUILD_ID)
         # tree.clear_commands(
         #     guild=guild, type=discord.AppCommandType.chat_input)
@@ -492,7 +490,6 @@ async def makeItem(interaction: Interaction, 종류: makeItemEnum):
 
 @tree.command(name="강화", description="아이템강화")
 async def reinforce_weapon(interaction: Interaction, 종류: reinEnum):
-    item = False
     try:
         if weapon_rein_dic[interaction.user.id]:
             return await interaction.response.send_message("강화할 수 없습니다.", ephemeral=True)
