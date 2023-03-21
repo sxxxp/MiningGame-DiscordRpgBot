@@ -492,6 +492,7 @@ async def makeItem(interaction: Interaction, 종류: makeItemEnum):
 
 @tree.command(name="강화", description="아이템강화")
 async def reinforce_weapon(interaction: Interaction, 종류: reinEnum):
+    item = False
     try:
         if weapon_rein_dic[interaction.user.id]:
             return await interaction.response.send_message("강화할 수 없습니다.", ephemeral=True)
@@ -505,16 +506,21 @@ async def reinforce_weapon(interaction: Interaction, 종류: reinEnum):
 
     async def setup(interaction: Interaction):
         disabled = False
-        if 종류.name == "무기":
-            cur.execute("SELECT upgrade,`rank`,name FROM user_weapon WHERE id = %s AND wear = 1",
-                        interaction.user.id)
-            item = makeDictionary(['upgrade', 'rank', 'name'], cur.fetchone())
-        else:
-            cur.execute("SELECT upgrade,`rank`,name FROM user_wear WHERE id = %s AND wear = 1 AND part = %s",
-                        (interaction.user.id, 종류.value))
-            item = makeDictionary(['upgrade', 'rank', 'name'], cur.fetchone())
-        if not item:
-            return await interaction.response.send_message("아이템을 장착하지 않았습니다.", ephemeral=True)
+        try:
+            item['upgrade']
+        except:
+            if 종류.name == "무기":
+                cur.execute("SELECT upgrade,`rank`,name FROM user_weapon WHERE id = %s AND wear = 1",
+                            interaction.user.id)
+                item = makeDictionary(
+                    ['upgrade', 'rank', 'name'], cur.fetchone())
+            else:
+                cur.execute("SELECT upgrade,`rank`,name FROM user_wear WHERE id = %s AND wear = 1 AND part = %s",
+                            (interaction.user.id, 종류.value))
+                item = makeDictionary(
+                    ['upgrade', 'rank', 'name'], cur.fetchone())
+            if not item:
+                return await interaction.response.send_message("아이템을 장착하지 않았습니다.", ephemeral=True)
         if item['upgrade'] == 25:
             con.commit()
             try:
@@ -588,14 +594,15 @@ async def reinforce_weapon(interaction: Interaction, 종류: reinEnum):
                     real_name = translateName(stat_name)
                     cur.execute(
                         f"UPDATE user_wear SET upgrade = upgrade +1, {real_name} = {real_name} + {stat} WHERE id = {interaction.user.id} AND wear = 1 AND part = {종류.value} ")
+                item['upgrade'] += 1
                 if item["upgrade"]+1 >= 20:
                     await interaction.channel.send(f"`{interaction.user.display_name}`님이 `{item['name']} +{item['upgrade']+1}` 강화에 성공했습니다!")
                 await interaction.response.edit_message(content="강화에 성공했습니다!", view=None, embed=None)
             else:
                 await interaction.response.edit_message(content="강화에 실패했습니다!", view=None, embed=None)
+            con.commit()
             await asyncio.sleep(2)
             await setup(interaction)
-            con.commit()
         back.callback = back_callback
         button.callback = button_callback
         try:
