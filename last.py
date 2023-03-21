@@ -1102,7 +1102,7 @@ async def mooroong(interaction: Interaction):
             await start(interaction)
 
         async def win(interaction: Interaction):  # 이겼을때
-            embed = discord.Embed()
+            embed = discord.Embed(title="승리!")
             view = ui.View(timeout=None)
             end_win = ui.Button(label="정비하기", style=ButtonStyle.green)
             end_win.callback = end_win_callback
