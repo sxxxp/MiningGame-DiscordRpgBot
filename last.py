@@ -107,8 +107,8 @@ def getPart(part: int):
 
 def getItem(name: str, index: int, id: int, cnt: int):
     cur = con.cursor()
-    items = getJson('./final/json/makeItem.json')
-    utils = getJson('./final/json/util.json')
+    items = getJson('./json/makeItem.json')
+    utils = getJson('./json/util.json')
     item = items['item'][index][name]
     util = utils[item['code']]
     cur.execute(
@@ -180,7 +180,7 @@ def block_exp(level: int, exp: int):
     guild = client.get_guild(884259665964314655)
     name = ["0_", "1_", "2_", "3_", "4_", "5_", "6_", "7_", "8_", "9_", "10"]
     block = [discord.utils.get(guild.emojis, name=i) for i in name]
-    level_info = getJson('./final/json/level.json')
+    level_info = getJson('./json/level.json')
     percent = round(exp/level_info[str(level)]*100)
     string = ''
     cnt = 0
@@ -196,7 +196,7 @@ def block_exp(level: int, exp: int):
 
 
 def is_levelup(level: int, exp: int, id: int):
-    level_info = getJson('./final/json/level.json')
+    level_info = getJson('./json/level.json')
     num = 0
     while level_info[str(level+num)] <= exp:
         exp -= level_info[str(level+num)]
@@ -469,7 +469,7 @@ async def reinforce_weapon(interaction: Interaction):
     if not authorize(interaction.user.id):
         return await interaction.response.send_message("`회원가입` 명령어로 먼저 가입을 해주세요.", ephemeral=True)
     cur = con.cursor()
-    reinforce_info = getJson('./final/json/reinforce.json')
+    reinforce_info = getJson('./json/reinforce.json')
 
     async def setup(interaction: Interaction):
         disabled = False
@@ -595,7 +595,7 @@ async def trade(interaction: Interaction, 유저: discord.Member, 종류: makeIt
         return await interaction.response.send_message("`회원가입`이 필요하거나 상대방이 가입하지 않았습니다. ", ephemeral=True)
     cur = con.cursor()
     category = 종류.value
-    item_data: dict = getJson('./final/json/util.json')
+    item_data: dict = getJson('./json/util.json')
     if category == "item":
         cur.execute("SELECT trade,amount FROM user_item WHERE id = %s AND item_id = %s",
                     (interaction.user.id, 코드))
@@ -1029,8 +1029,8 @@ async def mining(interaction: Interaction, 광산: miningEnum):
             await start()
 
         async def win(interaction: Interaction):  # 이겼을때
-            util_data = getJson('./final/json/util.json')
-            stone_data = getJson('./final/json/stone.json')
+            util_data = getJson('./json/util.json')
+            stone_data = getJson('./json/stone.json')
             util_code = enemy['util_code'].split(" ")
             util_percent = enemy['util_percent'].split(" ")
             util_amount = enemy['util_amount'].split(" ")
