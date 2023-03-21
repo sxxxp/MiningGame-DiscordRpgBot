@@ -526,7 +526,7 @@ async def put_util(interaction: Interaction, 코드: int, 개수: int, 유저: d
     if not interaction.user.id == 432066597591449600:
         return
     cur = con.cursor()
-    cur.execute("SELECT name FROM user_info WHERE id = %s", 유저.id)
+    cur.execute("SELECT nickname FROM user_info WHERE id = %s", 유저.id)
     if not cur.fetchone():
         return
     if 유저.id == 874615001527234560:
