@@ -57,7 +57,6 @@ class MyClient(discord.Client):
     async def on_ready(self):
         await self.wait_until_ready()
         setup()
-        await tree.sync()
         self.reward.start()
         print(f"{self.user} 에 로그인하였습니다!")
         await self.change_message()
@@ -306,6 +305,12 @@ def setup():  # 데이터베이스 테이블 생성
     # collection_effect 컬렉션효과(컬렉션,체력,무게,크리티컬,힘,개수)
     cur.execute("""CREATE TABLE IF NOT EXISTS collection_effect
                 (collection TEXT, hp INT, `str` INT, crit INT, power INT,crit_damage INT,damage INT, value INT)""")
+
+
+@tree.command(name="커맨드싱크", description="제작자 전용 명령어")
+async def sync(interaction: Interaction):
+    if interaction.user.id == 432066597591449600:
+        await tree.sync()
 
 
 @tree.command(name="제작소", description="아이템 제작소")
