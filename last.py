@@ -1226,7 +1226,7 @@ async def mining(interaction: Interaction, 광산: miningEnum):
                     min, max = util_amount[i].split("~")
                     total = random.randint(int(min), int(max))
                     cur.execute(
-                        "UPDATE user_item SET amount = amount + %s WHERE id = %s", (total, interaction.user.id))
+                        "UPDATE user_item SET amount = amount + %s WHERE id = %s AND item_id = %s", (total, interaction.user.id, util_code[i]))
                     con.commit()
                     embed.add_field(
                         name=f"{util['name']} {total}개 획득!", inline=False, value="\u200b")
