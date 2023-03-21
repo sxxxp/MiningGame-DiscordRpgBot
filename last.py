@@ -12,6 +12,7 @@ import asyncio
 import json
 import os
 
+
 GUILD_ID = '934824600498483220'
 LEVEL_PER_STAT = 2
 KST = datetime.timezone(datetime.timedelta(hours=9))
@@ -347,6 +348,30 @@ async def sync(interaction: Interaction):
         await tree.sync()
 
 
+@tree.command(name="스텟초기화", description="스텟초기화")
+async def reset_stat(interaction: Interaction):
+    if not authorize(interaction.user.id):
+        return await interaction.response.send_message("`회원가입` 명령어로 먼저 가입을 해주세요.", ephemeral=True)
+    cur = con.cursor()
+    cur.execute("SELECT amount FROM user_item WHERE id = %s AND item_id = %s",
+                (interaction.user.id, 8))
+    amount = cur.fetchone()
+    if not amount:
+        return await interaction.response.send_message("`스텟 초기화 스크롤`이 없습니다.", ephemeral=True)
+    else:
+        if not amount[0]:
+            return await interaction.response.send_message("`스텟 초기화 스크롤`이 없습니다.", ephemeral=True)
+        cur.execute(
+            "UPDATE user_item SET amount = amount - 1 WHERE id = %s AND item_id = %s", (interaction.user.id, 8))
+        cur.execute("SELECT level FROM user_info WHERE id = %s",
+                    interaction.user.id)
+        level = cur.fetchone()[0]
+        cur.execute("UPDATE user_stat SET power = 1 , str = 5, hp = 5, crit_damage=50 ,point = %s WHERE id = %s",
+                    (level*LEVEL_PER_STAT, interaction.user.id))
+        con.commit()
+        await interaction.response.send_message("성공적으로 스텟을 초기화 했습니다.", ephemeral=True)
+
+
 @tree.command(name="제작소", description="아이템 제작소")
 async def makeItem(interaction: Interaction, 종류: makeItemEnum):
     if not authorize(interaction.user.id):
@@ -498,6 +523,9 @@ async def makeItem(interaction: Interaction, 종류: makeItemEnum):
 
 @tree.command(name="캐릭터삭제", description="캐릭터 삭제")
 async def deleteUser(interaction: Interaction):
+    if not authorize(interaction.user.id):
+        return await interaction.response.send_message("`회원가입` 명령어로 먼저 가입을 해주세요.", ephemeral=True)
+
     class deleteModal(ui.Modal, title="캐릭터삭제"):
         answer = ui.TextInput(label="캐릭터를 한번 삭제하면 되돌릴 수 없어요.",
                               placeholder="'캐릭터삭제' 라고 적어주세요.")
@@ -548,6 +576,8 @@ async def put_util(interaction: Interaction, 코드: int, 개수: int, 유저: d
 
 @tree.command(name="강화", description="아이템강화")
 async def reinforce_weapon(interaction: Interaction, 종류: reinEnum):
+    if not authorize(interaction.user.id):
+        return await interaction.response.send_message("`회원가입` 명령어로 먼저 가입을 해주세요.", ephemeral=True)
     try:
         if weapon_rein_dic[interaction.user.id]:
             return await interaction.response.send_message("강화할 수 없습니다.", ephemeral=True)
