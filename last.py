@@ -40,6 +40,12 @@ class MyClient(discord.Client):
 
         con.commit()
 
+    @tasks.loop(hours=3)
+    async def reconnect_db(self):
+        global con
+        con = pymysql.connect(host=os.environ['host'], password=os.environ['password'],
+                              user=os.environ['user'], port=int(os.environ['port']), database=os.environ['database'], charset='utf8')
+
     async def change_message(self):
         while not client.is_closed():
             for i in ['개발', '0.0.1a버전 관리', '버그 제보 부탁']:

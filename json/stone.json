@@ -46,5 +46,11 @@
     "rank": "F",
     "weight": 0.4,
     "price": 120
+  },
+  "9": {
+    "name": "석영 원석",
+    "rank": "F",
+    "weight": 0.7,
+    "price": 300
   }
 }
