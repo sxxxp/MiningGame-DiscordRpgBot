@@ -11,9 +11,9 @@ import math
 import asyncio
 import json
 import os
-# from dotenv import load_dotenv
+from dotenv import load_dotenv
 
-# load_dotenv()
+load_dotenv()
 
 GUILD_ID = '934824600498483220'
 LEVEL_PER_STAT = 2
@@ -1080,6 +1080,108 @@ async def miningReset(interaction: Interaction):
         await interaction.response.send_message("성공적으로 초기화 했습니다.", ephemeral=True)
 
 
+@tree.command(name="무릉", description="무릉")
+async def mooroong(interaction: Interaction):
+    floor = {}
+    floor[interaction.user.id] = 1
+    if not authorize(interaction.user.id):
+        return await interaction.response.send_message("`회원가입` 명령어로 먼저 가입을 해주세요.", ephemeral=True)
+    stat = getStatus(interaction.user.id)
+    stat['power'] = round(stat['power'], 2)
+
+    async def go_callback(interaction: Interaction):  # 탐험진행
+        enemy = makeDictionary(['name', 'power', 'hp'], ("시련의 광석",
+                               floor[interaction.user.id]*2, floor[interaction.user.id]*20))
+
+        async def run_callback(interaction: Interaction):  # 도망치기
+            await interaction.response.edit_message(content="도망쳤습니다.")
+            return await start(interaction)
+
+        async def end_win_callback(interaction: Interaction):  # 전투 끝날때
+            await interaction.response.edit_message(content="재정비...")
+            await start(interaction)
+
+        async def win(interaction: Interaction):  # 이겼을때
+            embed = discord.Embed()
+            view = ui.View(timeout=None)
+            end_win = ui.Button(label="정비하기", style=ButtonStyle.green)
+            end_win.callback = end_win_callback
+
+            view.add_item(end_win)
+            floor[interaction.user.id] += 1
+            await interaction.response.edit_message(content="", embed=embed, view=view)
+
+        async def lose(interaction: Interaction):  # 졌을때
+            embed = discord.Embed(
+                title=f"기절했습니다. {floor[interaction.user.id]}층 도달.")
+            await interaction.response.edit_message(content="", embed=embed, view=None)
+
+        async def attack_callback(interaction: Interaction):  # 공격했을때
+            if getSuccess(stat['crit'], 100):
+                enemy['hp'] -= stat['power']+stat['power']*stat['crit_damage']
+            else:
+                enemy['hp'] -= stat['power']
+            stat['hp'] -= enemy['power']
+            if enemy['hp'] <= 0:
+                if stat['hp'] >= enemy['hp']:
+                    await win(interaction)
+                else:
+                    await lose(interaction)
+            elif stat['hp'] <= 0:
+                await lose(interaction)
+            await try_callback(interaction)
+
+        async def try_callback(interaction: Interaction):  # 도전하기
+            embed = discord.Embed(title=enemy['name'])
+            embed.add_field(name=f"{round(enemy['hp'],3)}❤", value="\u200b")
+            embed.add_field(name=f"{enemy['power']}⚡", value="\u200b")
+            embed.add_field(name=f"나", value="\u200b", inline=False)
+            embed.add_field(name=f"{stat['hp']}❤", value='\u200b')
+            embed.add_field(name=f"{stat['power']}⛏", value='\u200b')
+            embed.set_thumbnail(url=enemy['url'])
+            view = ui.View(timeout=None)
+            attack = ui.Button(emoji="⛏", style=ButtonStyle.green)
+            view.add_item(attack)
+            attack.callback = attack_callback
+            try:
+                await interaction.response.edit_message(content="", embed=embed, view=view)
+            except discord.errors.InteractionResponded:
+                pass
+
+        async def meet_enemy():  # 적과 만났을때
+            embed = discord.Embed(title=enemy['name'])
+            embed.add_field(name=f"{enemy['hp']}❤", value="\u200b")
+            embed.add_field(name=f"{enemy['power']}⚡", value="\u200b")
+            embed.set_thumbnail(url=enemy['url'])
+            view = ui.View(timeout=None)
+            try_button = ui.Button(
+                label='도전하기', emoji='⛏', style=ButtonStyle.green)
+            run_button = ui.Button(
+                label='도망치기', emoji="👟", style=ButtonStyle.red)
+            view.add_item(try_button)
+            view.add_item(run_button)
+            try_button.callback = try_callback
+            run_button.callback = run_callback
+            await interaction.response.edit_message(embed=embed, view=view)
+        await meet_enemy()
+
+    async def start(interaction: Interaction):  # 기본 정비 함수
+        rest = discord.Embed(title="정비")
+        rest.add_field(
+            name=f"남은 체력 : {stat['hp']}", value="\u200b", inline=False)
+        rest.add_field(
+            name=f"현재 층 : {floor[interaction.user.id]}", value="\u200b", inline=False)
+        view = ui.View(timeout=None)
+        go = ui.Button(label="탐험진행", emoji='⛏', style=ButtonStyle.green)
+        go.callback = go_callback
+        view.add_item(go)
+        try:
+            await interaction.response.send_message(embed=rest, view=view, ephemeral=True)
+        except discord.errors.InteractionResponded:
+            await interaction.edit_original_response(content="", embed=rest, view=view)
+    await start(interaction)
+
+
 @tree.command(name="채광", description="채광")
 async def mining(interaction: Interaction, 광산: miningEnum):
     if not authorize(interaction.user.id):
@@ -1109,7 +1211,7 @@ async def mining(interaction: Interaction, 광산: miningEnum):
         if 광산.value == -8:
             cnt[interaction.user.id] = 6
     stat = getStatus(interaction.user.id)
-    stat['power'] = round(stat['power'])
+    stat['power'] = round(stat['power'], 2)
     adventrue_inventory[interaction.user.id] = makeDictionary(
         ['weight', 'items', 'names'], (0.0, [], []))
 
