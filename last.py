@@ -10,6 +10,7 @@ import random
 import math
 import asyncio
 import json
+import os
 
 GUILD_ID = '934824600498483220'
 LEVEL_PER_STAT = 2
@@ -1217,4 +1218,4 @@ async def mining(interaction: Interaction, 광산: miningEnum):
         except discord.errors.InteractionResponded:
             await interaction.edit_original_response(content="", embed=rest, view=view)
     await start()
-client.run("ODc0NjE1MDAxNTI3MjM0NTYw.GANMZ1.dOH8tKjN6wi8-62MRGCS-J3yB3_CvXoR3YdVG8")
+client.run(os.environ['token'])
