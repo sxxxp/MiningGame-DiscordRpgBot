@@ -497,7 +497,8 @@ async def reinforce_weapon(interaction: Interaction, 종류: reinEnum):
             return await interaction.response.send_message("강화할 수 없습니다.", ephemeral=True)
     except KeyError:
         weapon_rein_dic[interaction.user.id] = True
-
+    else:
+        weapon_rein_dic[interaction.user.id] = True
     if not authorize(interaction.user.id):
         weapon_rein_dic[interaction.user.id] = False
         return await interaction.response.send_message("`회원가입` 명령어로 먼저 가입을 해주세요.", ephemeral=True)
@@ -610,7 +611,7 @@ async def reinforce_weapon(interaction: Interaction, 종류: reinEnum):
         try:
             await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
         except discord.errors.InteractionResponded:
-            await interaction.edit_original_response(embed=embed, view=view)
+            await interaction.edit_original_response(content="", embed=embed, view=view)
     await setup(interaction)
 
 
