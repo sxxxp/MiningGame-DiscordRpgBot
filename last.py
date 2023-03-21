@@ -58,7 +58,10 @@ class MyClient(discord.Client):
         await self.wait_until_ready()
         setup()
         self.reward.start()
-        await tree.sync()
+        # for i in client.guilds:
+        # await
+        guild = discord.Object(id=GUILD_ID)
+        await tree.remove_command(guild=guild)
         print(f"{self.user} 에 로그인하였습니다!")
         await self.change_message()
 
