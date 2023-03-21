@@ -56,7 +56,7 @@ class MyClient(discord.Client):
 
     async def on_ready(self):
         await self.wait_until_ready()
-        await tree.sync(guild=discord.Object(id=GUILD_ID))
+        await tree.sync()
 
         setup()
         self.reward.start()
@@ -309,7 +309,7 @@ def setup():  # 데이터베이스 테이블 생성
                 (collection TEXT, hp INT, `str` INT, crit INT, power INT,crit_damage INT,damage INT, value INT)""")
 
 
-@tree.command(guild=discord.Object(id=GUILD_ID), name="제작소", description="아이템 제작소")
+@tree.command(name="제작소", description="아이템 제작소")
 async def makeItem(interaction: Interaction, 종류: makeItemEnum):
     if not authorize(interaction.user.id):
         return await interaction.response.send_message("`회원가입` 명령어로 먼저 가입을 해주세요.", ephemeral=True)
@@ -458,7 +458,7 @@ async def makeItem(interaction: Interaction, 종류: makeItemEnum):
     await setup(interaction)
 
 
-@tree.command(guild=discord.Object(id=GUILD_ID), name="무기강화", description="무기강화")
+@tree.command(name="무기강화", description="무기강화")
 async def reinforce_weapon(interaction: Interaction):
     try:
         if weapon_rein_dic[interaction.user.id]:
@@ -561,7 +561,7 @@ async def reinforce_weapon(interaction: Interaction):
     await setup(interaction)
 
 
-@tree.command(guild=discord.Object(id=GUILD_ID), name="랭킹", description="랭킹")
+@tree.command(name="랭킹", description="랭킹")
 async def ranking(interaction: Interaction, 종류: rankingEnum):
     if not authorize(interaction.user.id):
         return await interaction.response.send_message("`회원가입` 명령어로 먼저 가입을 해주세요.", ephemeral=True)
@@ -589,7 +589,7 @@ async def ranking(interaction: Interaction, 종류: rankingEnum):
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
-@tree.command(guild=discord.Object(id=GUILD_ID), name="아이템거래", description="거래")
+@tree.command(name="아이템거래", description="거래")
 async def trade(interaction: Interaction, 유저: discord.Member, 종류: makeItemEnum, 코드: int, 개수: int):
     if not authorize(interaction.user.id) or not authorize(유저.id):
         return await interaction.response.send_message("`회원가입`이 필요하거나 상대방이 가입하지 않았습니다. ", ephemeral=True)
@@ -644,7 +644,7 @@ async def trade(interaction: Interaction, 유저: discord.Member, 종류: makeIt
         return await interaction.response.send_message("거래할 수 없는 아이템 입니다.", ephemeral=True)
 
 
-@tree.command(guild=discord.Object(id=GUILD_ID), name="스텟", description="스테이터스")
+@tree.command(name="스텟", description="스테이터스")
 async def status(interaction: Interaction, 스텟: statusEnum, 포인트: int):
     if not authorize(interaction.user.id):
         return await interaction.response.send_message("`회원가입` 명령어로 먼저 가입을 해주세요.", ephemeral=True)
@@ -668,7 +668,7 @@ async def status(interaction: Interaction, 스텟: statusEnum, 포인트: int):
     await interaction.response.send_message(message, ephemeral=True)
 
 
-@tree.command(guild=discord.Object(id=GUILD_ID), name="회원가입", description="회원가입입니다.")
+@tree.command(name="회원가입", description="회원가입입니다.")
 async def register(interaction: Interaction, 닉네임: str):
     cur = con.cursor()
     if authorize(interaction.user.id):
@@ -685,7 +685,7 @@ async def register(interaction: Interaction, 닉네임: str):
         await interaction.response.send_message("아이디가 생성되었습니다.", ephemeral=True)
 
 
-@tree.command(guild=discord.Object(id=GUILD_ID), name="정보", description="정보")
+@tree.command(name="정보", description="정보")
 async def info(interaction: Interaction, 유저: discord.Member = None):
     if not authorize(interaction.user.id):
         return await interaction.response.send_message("`회원가입` 명령어로 먼저 가입을 해주세요.", ephemeral=True)
@@ -731,7 +731,7 @@ async def info(interaction: Interaction, 유저: discord.Member = None):
     await setting(interaction)
 
 
-@tree.command(guild=discord.Object(id=GUILD_ID), name="인벤토리", description="인벤토리")
+@tree.command(name="인벤토리", description="인벤토리")
 async def inventory(interaction: Interaction, 종류: makeItemEnum):
     if not authorize(interaction.user.id):
         return await interaction.response.send_message("`회원가입` 명령어로 먼저 가입을 해주세요.", ephemeral=True)
@@ -917,7 +917,7 @@ async def inventory(interaction: Interaction, 종류: makeItemEnum):
     await setup(interaction)
 
 
-@tree.command(guild=discord.Object(id=GUILD_ID), name="채광초기화", description="채광이 버그가 나서 초기화가 필요할때 쓰세요.")
+@tree.command(name="채광초기화", description="채광이 버그가 나서 초기화가 필요할때 쓰세요.")
 async def miningReset(interaction: Interaction):
     try:
         cnt[interaction.user.id]
@@ -930,7 +930,7 @@ async def miningReset(interaction: Interaction):
         await interaction.response.send_message("성공적으로 초기화 했습니다.", ephemeral=True)
 
 
-@tree.command(guild=discord.Object(id=GUILD_ID), name="채광", description="채광")
+@tree.command(name="채광", description="채광")
 async def mining(interaction: Interaction, 광산: miningEnum):
     if not authorize(interaction.user.id):
         return await interaction.response.send_message("`회원가입` 명령어로 먼저 가입을 해주세요.", ephemeral=True)
