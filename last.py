@@ -63,6 +63,7 @@ class MyClient(discord.Client):
         guild = discord.Object(id=GUILD_ID)
         tree.clear_commands(
             guild=guild, type=discord.AppCommandType.chat_input)
+        await tree.sync(guild=guild)
         print(f"{self.user} 에 로그인하였습니다!")
         await self.change_message()
 
