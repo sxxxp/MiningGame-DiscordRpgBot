@@ -522,13 +522,25 @@ async def deleteUser(interaction: Interaction):
 
 
 @tree.command(name="기타아이템넣기", description="개발자전용명령어")
-async def put_util(interaction: Interaction, 코드: int, 개수: int):
+async def put_util(interaction: Interaction, 코드: int, 개수: int, 유저: discord.Member):
     if not interaction.user.id == 432066597591449600:
         return
     cur = con.cursor()
-    isExistItem(interaction.user.id, 코드)
-    cur.execute("UPDATE user_item SET amount = %s WHERE id = %s AND item_id = %s",
-                (개수, interaction.user.id, 코드))
+    cur.execute("SELECT name FROM user_info WHERE id = %s", 유저.id)
+    if not cur.fetchone():
+        return
+    if 유저.id == 874615001527234560:
+        cur.execute("SELECT id FROM user_info")
+        users = cur.fetchall()
+        for i in users:
+            isExistItem(i[0], 코드)
+        cur.execute(
+            "UPDATE user_item SET amount = amount + %s WHERE item_id = %s",
+            (개수, 코드))
+    else:
+        isExistItem(유저.id, 코드)
+        cur.execute("UPDATE user_item SET amount = amount+ %s WHERE id = %s AND item_id = %s",
+                    (개수, 유저.id, 코드))
     con.commit()
     cur.close()
     return await interaction.response.send_message("성공적으로 넣었습니다", ephemeral=True)
