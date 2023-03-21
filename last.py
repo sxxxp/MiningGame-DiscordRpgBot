@@ -821,8 +821,8 @@ async def register(interaction: Interaction, 닉네임: str):
     if authorize(interaction.user.id):
         await interaction.response.send_message("아이디가 있습니다.", ephemeral=True)
     else:
-        cur.execute("""INSERT INTO user_info(nickname,id,exp,level,money,role,create_at) 
-                    VALUES(%s,%s,%s,%s,%s,%s,%s)""", (닉네임, interaction.user.id, 0, 1, 100, 0, datetime.datetime.today()))
+        cur.execute("""INSERT INTO user_info(nickname,id,exp,level,money,role,create_at,mooroong) 
+                    VALUES(%s,%s,%s,%s,%s,%s,%s,%s)""", (닉네임, interaction.user.id, 0, 1, 100, 0, datetime.datetime.today(), 0))
         cur.execute("INSERT INTO user_stat(id,power,hp,str,crit,crit_damage,point) VALUES(%s,%s,%s,%s,%s,%s,%s)",
                     (interaction.user.id, 1, 5, 5, 5, 50, 0))
         cur.execute("""INSERT INTO user_weapon(name,upgrade,`rank`,level,power,damage,wear,trade,id,url)
@@ -844,9 +844,9 @@ async def info(interaction: Interaction, 유저: discord.Member = None):
         cur = con.cursor()
         id = interaction.user.id if not 유저 else 유저.id
         cur.execute(
-            "SELECT nickname,exp,level,money,create_at FROM user_info WHERE id=%s", id)
+            "SELECT nickname,exp,level,money,create_at,mooroong FROM user_info WHERE id=%s", id)
         user = makeDictionary(
-            ['nickname', 'exp', 'level', 'money', 'create_at'], cur.fetchone())
+            ['nickname', 'exp', 'level', 'money', 'create_at', 'moorong'], cur.fetchone())
         stat = getStatus(id)
         view = ui.View(timeout=None)
         button = ui.Button(label="새로고침")
@@ -857,7 +857,9 @@ async def info(interaction: Interaction, 유저: discord.Member = None):
         money = format(user['money'], ",")
         embed.add_field(
             name=f"Lv. {user['level']} {user['exp']}/{level_info}({round(user['exp']/level_info*100)}%)", value=string_block, inline=True)
-        embed.add_field(name=f"{money}💰", value="\u200b", inline=False)
+        embed.add_field(name=f"{money}💰", value="\u200b", inline=True)
+        embed.add_field(
+            name=f"무릉 : \n{user['moorong']}층", value="\u200b", inline=True)
         embed.add_field(name=f"힘 : \n{round(stat['power'],2)}", value='\u200b')
         # embed.add_field(
         #     name=f"데미지배수 : \nx{round(stat['damage'],2)}", value="\u200b")
@@ -1092,10 +1094,6 @@ async def mooroong(interaction: Interaction):
     async def go_callback(interaction: Interaction):  # 탐험진행
         enemy = makeDictionary(['name', 'power', 'hp'], ("시련의 광석",
                                floor[interaction.user.id]*2, floor[interaction.user.id]*20))
-
-        async def run_callback(interaction: Interaction):  # 도망치기
-            await interaction.response.edit_message(content="도망쳤습니다.")
-            return await start(interaction)
 
         async def end_win_callback(interaction: Interaction):  # 전투 끝날때
             await interaction.response.edit_message(content="재정비...")
