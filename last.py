@@ -57,6 +57,7 @@ class MyClient(discord.Client):
     async def on_ready(self):
         await self.wait_until_ready()
         setup()
+        await tree.sync()
         self.reward.start()
         print(f"{self.user} 에 로그인하였습니다!")
         await self.change_message()
