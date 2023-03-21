@@ -1,1 +1,0 @@
-cur.execute("INSERT INTO enemy VALUES(%s,%s,%S,%s,%s,%s,%s,%s)","석탄 광석",5,50,1,"1 2","100 10","1 5 1 1","https://cdn.discordapp.com/attachments/988424121878741022/1084768038051659776/coal.png")
