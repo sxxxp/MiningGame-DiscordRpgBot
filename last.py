@@ -523,7 +523,7 @@ async def deleteUser(interaction: Interaction):
 
 @tree.command(name="기타아이템넣기", description="개발자전용명령어")
 async def put_util(interaction: Interaction, 코드: int, 개수: int):
-    if interaction.user.id == 432066597591449600:
+    if not interaction.user.id == 432066597591449600:
         return
     cur = con.cursor()
     isExistItem(interaction.user.id, 코드)
