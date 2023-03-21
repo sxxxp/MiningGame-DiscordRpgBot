@@ -102,7 +102,7 @@ class rankingEnum(Enum):
 def isExistItem(id: int, code: int):
     cur = con.cursor()
     utils = getJson('./json/util.json')
-    util = utils[code]
+    util = utils[str(code)]
     cur.execute(
         "SELECT * FROM user_item WHERE id = %s AND item_id = %s", (id, code))
     if not cur.fetchone():
