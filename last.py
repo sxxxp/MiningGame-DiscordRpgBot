@@ -598,6 +598,7 @@ async def reinforce_weapon(interaction: Interaction, 종류: reinEnum):
         return await interaction.response.send_message("`회원가입` 명령어로 먼저 가입을 해주세요.", ephemeral=True)
     cur = con.cursor()
     reinforce_info = getJson('./json/reinforce.json')
+    category = 'weapon' if 종류.value == 0 else 'wear'
 
     async def setup(interaction: Interaction):
         disabled = False
@@ -631,7 +632,7 @@ async def reinforce_weapon(interaction: Interaction, 종류: reinEnum):
         req_money = reinforce_info['money'][item['rank']][str(
             item['upgrade']+1)]
         req_item = reinforce_info['item'][item['rank']][str(item['upgrade']+1)]
-        stat = reinforce_info['stat'][item['rank']][str(item['upgrade']+1)]
+        stat = reinforce_info[category][item['rank']][str(item['upgrade']+1)]
         embed.add_field(
             name=f"강화 확률 : {req_percent}%", value="\u200b")
         embed.add_field(
