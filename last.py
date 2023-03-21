@@ -60,10 +60,10 @@ class MyClient(discord.Client):
         self.reward.start()
         # for i in client.guilds:
         # await
-        guild = discord.Object(id=GUILD_ID)
-        tree.clear_commands(
-            guild=guild, type=discord.AppCommandType.chat_input)
-        await tree.sync(guild=guild)
+        # guild = discord.Object(id=GUILD_ID)
+        # tree.clear_commands(
+        #     guild=guild, type=discord.AppCommandType.chat_input)
+        # await tree.sync(guild=guild)
         print(f"{self.user} 에 로그인하였습니다!")
         await self.change_message()
 
@@ -79,9 +79,12 @@ mining_dic = {}
 cnt = {}
 
 
-class wearEnum(Enum):
+class reinEnum(Enum):
+    무기 = 0
     투구 = 1
     갑옷 = 2
+    장갑 = 3
+    신발 = 4
 
 
 class makeItemEnum(Enum):
@@ -110,7 +113,21 @@ class rankingEnum(Enum):
 
 
 def getPart(part: int):
-    parts = ['', '투구', '갑옷']
+    parts = ['', '투구', '갑옷', '장갑', '신발']
+    return parts[part]
+
+
+def translateName(name: str):
+    if name == "힘":
+        return 'power'
+    elif name == "체력":
+        return 'hp'
+    elif name == "중량":
+        return 'str'
+
+
+def getPartRein(part: int):
+    parts = ['힘', '체력', '중량', '힘', '체력']
     return parts[part]
 
 
@@ -473,13 +490,8 @@ async def makeItem(interaction: Interaction, 종류: makeItemEnum):
     await setup(interaction)
 
 
-@tree.command(name="방어구강화", description="방어구강화")
-async def reinforce_wear(interaction: Interaction, 종류: wearEnum):
-    pass
-
-
-@tree.command(name="무기강화", description="무기강화")
-async def reinforce_weapon(interaction: Interaction):
+@tree.command(name="강화", description="아이템강화")
+async def reinforce_weapon(interaction: Interaction, 종류: reinEnum):
     try:
         if weapon_rein_dic[interaction.user.id]:
             return await interaction.response.send_message("강화할 수 없습니다.", ephemeral=True)
@@ -493,9 +505,16 @@ async def reinforce_weapon(interaction: Interaction):
 
     async def setup(interaction: Interaction):
         disabled = False
-        cur.execute("SELECT upgrade,`rank`,name FROM user_weapon WHERE id = %s AND wear = 1",
-                    interaction.user.id)
-        item = makeDictionary(['upgrade', 'rank', 'name'], cur.fetchone())
+        if 종류.name == "무기":
+            cur.execute("SELECT upgrade,`rank`,name FROM user_weapon WHERE id = %s AND wear = 1",
+                        interaction.user.id)
+            item = makeDictionary(['upgrade', 'rank', 'name'], cur.fetchone())
+        else:
+            cur.execute("SELECT upgrade,`rank`,name FROM user_wear WHERE id = %s AND wear = 1 AND part = %s",
+                        (interaction.user.id, 종류.value))
+            item = makeDictionary(['upgrade', 'rank', 'name'], cur.fetchone())
+        if not item:
+            return await interaction.response.send_message("아이템을 장착하지 않았습니다.", ephemeral=True)
         if item['upgrade'] == 25:
             con.commit()
             try:
@@ -504,7 +523,7 @@ async def reinforce_weapon(interaction: Interaction):
                 await interaction.edit_original_response(content="25강화를 완료 했습니다.")
             return
         embed = discord.Embed(
-            title=f"{item['name']}[{item['rank']}] +{item['upgrade']} 강화")
+            title=f"{item['name']}[{item['rank']}] +{item['upgrade']} > +{item['upgrade']+1} 강화")
         req_percent = reinforce_info['percent'][str(item["upgrade"]+1)]
         req_money = reinforce_info['money'][item['rank']][str(
             item['upgrade']+1)]
@@ -538,9 +557,9 @@ async def reinforce_weapon(interaction: Interaction):
             utils.append(dump)
             if user_amount < amounts[-1]:
                 disabled = True
-
+        stat_name = getPartRein(종류.value)
         embed.set_footer(
-            text=f"강화 성공시 힘 + {stat}")
+            text=f"강화 성공시 {stat_name} + {stat}")
         view = ui.View(timeout=1800)
         button = ui.Button(label="강화하기", disabled=disabled,
                            style=ButtonStyle.green)
@@ -562,8 +581,13 @@ async def reinforce_weapon(interaction: Interaction):
             cur.execute("UPDATE user_info SET money = money - %s WHERE id = %s",
                         (req_money, interaction.user.id))
             if getSuccess(req_percent, 100):
-                cur.execute("UPDATE user_weapon SET upgrade = upgrade + 1 , power = power + %s WHERE id = %s AND wear = 1 ",
-                            (stat, interaction.user.id))
+                if 종류.name == "무기":
+                    cur.execute("UPDATE user_weapon SET upgrade = upgrade + 1 , power = power + %s WHERE id = %s AND wear = 1 ",
+                                (stat, interaction.user.id))
+                else:
+                    real_name = translateName(stat_name)
+                    cur.execute(
+                        f"UPDATE user_wear SET upgrade = upgrade +1, {real_name} = {real_name} + {stat} WHERE id = {interaction.user.id} AND wear = 1 AND part = {종류.value} ")
                 if item["upgrade"]+1 >= 20:
                     await interaction.channel.send(f"`{interaction.user.display_name}`님이 `{item['name']} +{item['upgrade']+1}` 강화에 성공했습니다!")
                 await interaction.response.edit_message(content="강화에 성공했습니다!", view=None, embed=None)
