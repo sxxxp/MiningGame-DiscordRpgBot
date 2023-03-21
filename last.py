@@ -1151,7 +1151,6 @@ async def mooroong(interaction: Interaction):
             embed = discord.Embed(title=enemy['name'])
             embed.add_field(name=f"{enemy['hp']}❤", value="\u200b")
             embed.add_field(name=f"{enemy['power']}⚡", value="\u200b")
-            embed.set_thumbnail(url=enemy['url'])
             view = ui.View(timeout=None)
             try_button = ui.Button(
                 label='도전하기', emoji='⛏', style=ButtonStyle.green)
