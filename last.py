@@ -597,8 +597,8 @@ async def reinforce_weapon(interaction: Interaction, 종류: reinEnum):
                     cur.execute(
                         f"UPDATE user_wear SET upgrade = upgrade +1, {real_name} = {real_name} + {stat} WHERE id = {interaction.user.id} AND wear = 1 AND part = {종류.value} ")
                 item['upgrade'] += 1
-                if item["upgrade"]+1 >= 20:
-                    await interaction.channel.send(f"`{interaction.user.display_name}`님이 `{item['name']} +{item['upgrade']+1}` 강화에 성공했습니다!")
+                if item["upgrade"] >= 20:
+                    await interaction.channel.send(f"`{interaction.user.display_name}`님이 `{item['name']} +{item['upgrade']}` 강화에 성공했습니다!")
                 await interaction.response.edit_message(content="강화에 성공했습니다!", view=None, embed=None)
             else:
                 await interaction.response.edit_message(content="강화에 실패했습니다!", view=None, embed=None)
