@@ -28,24 +28,13 @@ class MyClient(discord.Client):
         cur.execute("SELECT id FROM user_info")
         user = cur.fetchall()
         for i in user:
-            cur.execute(
-                "SELECT item_id FROM user_item WHERE id = %s AND item_id = %s", (i[0], 2))
-            daily_ticket = cur.fetchone()
+            isExistItem(i[0], 2)
             if weekday == 3:
-                cur.execute(
-                    "SELECT item_id FROM user_item WHERE id = %s ANd item_id = %s", (i[0], 4))
-                weekly_ticket = cur.fetchone()
-                if not weekly_ticket:
-                    cur.execute("INSERT INTO user_item VALUES(%s,%s,%s,%s,%s,%s,%s)",
-                                (4, "주간광산 입장권", "주간광산에 입장할 수 있는 아이템이다.", "X", 0, False, i[0]))
+                isExistItem(i[0], 4)
                 cur.execute(
                     "UPDATE user_item SET amount = 1 WHERE item_id = %s", 4)
-            if not daily_ticket:
-                cur.execute(
-                    "INSERT INTO user_item VALUES(%s,%s,%s,%s,%s,%s,%s)",
-                    (2, "요일광산 입장권", "요일광산에 입장할 수 있는 아이템이다.", "X", 0, False, i[0]))
-
         cur.execute("UPDATE user_item SET amount = 1 WHERE item_id = %s", 2)
+
         con.commit()
 
     async def change_message(self):
@@ -108,6 +97,19 @@ class statusEnum(Enum):
 class rankingEnum(Enum):
     레벨 = 'level'
     자산 = 'money'
+
+
+def isExistItem(id: int, code: int):
+    cur = con.cursor()
+    utils = getJson('./json/util.json')
+    util = utils[code]
+    cur.execute(
+        "SELECT * FROM user_item WHERE id = %s AND item_id = %s", (id, code))
+    if not cur.fetchone():
+        cur.execute("INSERT INTO user_item VALUES(%s,%s,%s,%s,%s,%s,%s,%s)",
+                    (code, util['name'], util['description'], util['rank'], util['price'], util['trade'], 0, id))
+    con.commit()
+    cur.close()
 
 
 def getPart(part: int):
@@ -513,6 +515,17 @@ async def deleteUser(interaction: Interaction):
             else:
                 return await interaction.response.send_message("캐릭터 삭제 실패", ephemeral=True)
     await interaction.response.send_modal(deleteModal())
+
+
+@tree.command(name="기타아이템넣기", description="개발자전용명령어")
+async def put_util(interaction: Interaction, 코드: int, 개수: int):
+    if interaction.user.id == 432066597591449600:
+        return
+    utils = getJson('./json/util.json')
+    cur = con.cursor()
+    isExistItem(interaction.user.id, 코드)
+    cur.execute("UPDATE user_item SET amount = %s WHERE id = %s AND code = %s",
+                (개수, interaction.user.id, 코드))
 
 
 @tree.command(name="강화", description="아이템강화")

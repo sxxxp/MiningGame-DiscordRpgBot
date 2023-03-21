@@ -47,5 +47,12 @@
     "rank": "E",
     "price": 500,
     "trade": false
+  },
+  "8": {
+    "name": "스텟 초기화 스크롤",
+    "description": "스텟초기화에 사용되는 스크롤이다.",
+    "rank":"S",
+    "price":0,
+    "trade":false
   }
 }
