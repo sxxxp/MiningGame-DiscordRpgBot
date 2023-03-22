@@ -883,6 +883,8 @@ async def status(interaction: Interaction, 스텟: statusEnum, 포인트: int):
             con.commit()
             message = f'`{스텟.name} +{포인트}`'
     await interaction.response.send_message(message, ephemeral=True)
+    await asyncio.sleep(3)
+    return await interaction.delete_original_response()
 
 
 @tree.command(name="강화초기화", description="운영자를 부르세요.")
@@ -1533,7 +1535,9 @@ async def mining(interaction: Interaction, 광산: miningEnum):
                     (result, interaction.user.id))
         con.commit()
         mining_dic[interaction.user.id] = False
-        return await interaction.response.edit_message(content="", embed=embed, view=None)
+        await interaction.response.edit_message(content="", embed=embed, view=None)
+        await asyncio.sleep(4)
+        return await interaction.delete_original_response()
 
     async def start(interaction: Interaction):  # 기본 정비 함수
         rest = discord.Embed(title="정비")
