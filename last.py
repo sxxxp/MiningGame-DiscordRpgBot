@@ -461,6 +461,8 @@ async def makeItem(interaction: Interaction, 종류: makeItemEnum):
                     item = items[category][index][i]
                     name = i
                     embed = discord.Embed(title=i)
+                    if not category == "item":
+                        embed.set_thumbnail(url=item['url'])
                     for j in item['required']:
                         req_items.append(utils[j]['name'])
                         req_amounts.append(
