@@ -126,12 +126,14 @@ def getPart(part: int):
 
 
 def translateName(name: str):
-    if name == "힘":
-        return 'power'
-    elif name == "체력":
-        return 'hp'
-    elif name == "중량":
-        return 'str'
+    column = ['power', 'hp', 'str', 'crit', 'crit_damage', 'damage']
+    korean = ['힘', '체력', '중량', '크리티컬 확률', '크리티컬 데미지', '데미지']
+    isColumn = column.index(name)
+    isKorean = korean.index(name)
+    if isColumn != -1:
+        return korean[isColumn]
+    elif isKorean != -1:
+        return column[isKorean]
 
 
 def getPartRein(part: int):
@@ -363,6 +365,18 @@ async def show_collection(interaction: Interaction):
                 (SELECT collection as col,COUNT(collection) as cnt FROM user_wear
                 WHERE wear=1 AND id=%s GROUP BY collection)
                 B ON B.col = A.collection WHERE B.cnt>=A.value""", interaction.user.id)
+    embed = discord.Embed(title="세트효과")
+    values = cur.fetchall()
+    for i in values:
+        text = ''
+        item = makeDictionary(
+            ['collection', 'value', 'hp', 'power', 'str', 'crit', 'crit_damage', 'damage'], i)
+        for j in ['hp', 'power', 'str', 'crit', 'crit_damage', 'damage']:
+            if item[j] != 0:
+                text += f"{translateName(j)} {'+' if item[j]>0 else ''}{item[j]}  "
+        embed.add_field(
+            name=f"{item['collection']} {item['value']}세트", value=text, inline=False)
+    await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
 @tree.command(name="스텟초기화", description="스텟초기화")
