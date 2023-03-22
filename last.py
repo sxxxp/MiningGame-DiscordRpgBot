@@ -128,12 +128,10 @@ def getPart(part: int):
 def translateName(name: str):
     column = ['power', 'hp', 'str', 'crit', 'crit_damage', 'damage']
     korean = ['힘', '체력', '중량', '크리티컬 확률', '크리티컬 데미지', '데미지']
-    isColumn = column.index(name)
-    isKorean = korean.index(name)
-    if isColumn != -1:
-        return korean[isColumn]
-    elif isKorean != -1:
-        return column[isKorean]
+    if name in column:
+        return korean[column.index(name)]
+    elif name in korean:
+        return column[korean.index(name)]
 
 
 def getPartRein(part: int):
