@@ -891,7 +891,7 @@ async def register(interaction: Interaction, 닉네임: str):
         cur.execute("""INSERT INTO user_info(nickname,id,exp,level,money,role,create_at,mooroong) 
                     VALUES(%s,%s,%s,%s,%s,%s,%s,%s)""", (닉네임, interaction.user.id, 0, 1, 100, 0, datetime.datetime.today(), 0))
         cur.execute("INSERT INTO user_stat(id,power,hp,str,crit,crit_damage,point) VALUES(%s,%s,%s,%s,%s,%s,%s)",
-                    (interaction.user.id, 1, 5, 5, 5, 50, 0))
+                    (interaction.user.id, 1, 5, 5, 5, 50, 2))
         cur.execute("""INSERT INTO user_weapon(name,upgrade,`rank`,level,power,damage,wear,trade,id,url)
                     VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
                     ('기본 곡괭이', 0, 'F', 1, 5, 100, 1, 0, interaction.user.id, "https://cdn.discordapp.com/attachments/988424121878741022/1040198148661973022/pickaxe1.png"))
