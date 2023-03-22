@@ -923,15 +923,16 @@ async def info(interaction: Interaction, 유저: discord.Member = None):
         cur = con.cursor()
         id = interaction.user.id if not 유저 else 유저.id
         cur.execute(
-            "SELECT nickname,exp,level,money,create_at,mooroong FROM user_info WHERE id=%s", id)
+            "SELECT nickname,title,exp,level,money,create_at,mooroong FROM user_info WHERE id=%s", id)
         user = makeDictionary(
-            ['nickname', 'exp', 'level', 'money', 'create_at', 'moorong'], cur.fetchone())
+            ['nickname', 'title', 'exp', 'level', 'money', 'create_at', 'moorong'], cur.fetchone())
         stat = getStatus(id)
         view = ui.View(timeout=None)
         button = ui.Button(label="새로고침")
         view.add_item(button)
         button.callback = setting
-        embed = discord.Embed(title=user['nickname'])
+        embed = discord.Embed(
+            title=f"{user['nickname']}[{'칭호없음' if user['title'] else user['title'] }]")
         string_block, level_info = block_exp(user['level'], user['exp'])
         money = format(user['money'], ",")
         exp = format(user['exp'], ",")
