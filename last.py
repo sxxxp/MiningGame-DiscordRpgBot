@@ -343,9 +343,9 @@ def setup():  # 데이터베이스 테이블 생성
     # user_info 유저 정보(이름,경험치,레벨,돈,역할,생성일자)
     cur.execute("""CREATE TABLE IF NOT EXISTS user_info
                 (nickname TEXT,id TEXT,exp INT,level INT,money INT,role INT,create_at DATE)""")
-    # user_stat 유저 스텟(칭호,힘,체력,무게,치명타,치명타데미지,포인트)
+    # user_stat 유저 스텟(아이디,힘,체력,무게,치명타,치명타데미지,포인트)
     cur.execute("""CREATE TABLE IF NOT EXISTS user_stat 
-                (id TEXT,title TEXT,power INT,hp INT,str INT,crit INT,crit_damage INT,point INT)""")
+                (id TEXT,power INT,hp INT,str INT,crit INT,crit_damage INT,point INT)""")
     # user_weapon 유저 무기(아이템아이디,이름,강화,등급,레벨,힘,데미지,옵션,착용여부,거래여부,아이디,이미지)
     cur.execute("""CREATE TABLE IF NOT EXISTS user_weapon 
                 (item_id INT PRIMARY KEY AUTO_INCREMENT,name TEXT,upgrade INT,`rank` TEXT,level INT, power INT,damage INT,`option` TEXT,wear BOOLEAN,trade BOOLEAN,id TEXT,url TEXT)""")
@@ -923,9 +923,9 @@ async def info(interaction: Interaction, 유저: discord.Member = None):
         cur = con.cursor()
         id = interaction.user.id if not 유저 else 유저.id
         cur.execute(
-            "SELECT nickname,title,exp,level,money,create_at,mooroong FROM user_info WHERE id=%s", id)
+            "SELECT nickname,exp,level,money,create_at,mooroong FROM user_info WHERE id=%s", id)
         user = makeDictionary(
-            ['nickname', 'title', 'exp', 'level', 'money', 'create_at', 'moorong'], cur.fetchone())
+            ['nickname', 'exp', 'level', 'money', 'create_at', 'moorong'], cur.fetchone())
         stat = getStatus(id)
         view = ui.View(timeout=None)
         button = ui.Button(label="새로고침")
