@@ -613,6 +613,9 @@ async def deleteUser(interaction: Interaction):
                             interaction.user.id)
                 cur.execute("DELETE FROM user_item WHERE id = %s",
                             interaction.user.id)
+                cur.execute("DELETE FROM user_title WHERE id = %s",
+                            interaction.user.id)
+
                 return await interaction.response.send_message("성공적으로 캐릭터를 삭제했습니다.", ephemeral=True)
             else:
                 return await interaction.response.send_message("캐릭터 삭제 실패", ephemeral=True)
