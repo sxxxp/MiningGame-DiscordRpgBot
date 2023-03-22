@@ -40,11 +40,10 @@ class MyClient(discord.Client):
 
         con.commit()
 
-    @tasks.loop(hours=3)
+    @tasks.loop(hours=1)
     async def reconnect_db(self):
-        global con
-        con = pymysql.connect(host=os.environ['host'], password=os.environ['password'],
-                              user=os.environ['user'], port=int(os.environ['port']), database=os.environ['database'], charset='utf8')
+        cur = con.cursor()
+        cur.execute("SELECT * FROM user_info")
 
     async def change_message(self):
         while not client.is_closed():
