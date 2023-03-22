@@ -56,6 +56,25 @@
         },
         "percent": 100
       }
+    },
+    {
+      "광부장갑": {
+        "name":"광부장갑",
+        "rank": "F",
+        "level": 10,
+        "power": "2 4",
+        "hp": "1 4",
+        "str": "0 2",
+        "collection":"기본 방어구",
+        "part": 3,
+        "trade": false,
+        "url":"https://cdn.discordapp.com/attachments/988424121878741022/1087933878787903508/miner_glove.png",
+        "required": {
+          "5":2,
+          "6":15
+        },
+        "percent":100
+      }
     }
   ],
 
