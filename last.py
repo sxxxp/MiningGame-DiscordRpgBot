@@ -377,6 +377,8 @@ async def sync(interaction: Interaction):
 
 @tree.command(name="세트효과", description="현재 적용받는 세트효과를 보여줍니다.")
 async def show_collection(interaction: Interaction):
+    if not authorize(interaction.user.id):
+        return await interaction.response.send_message("`회원가입` 명령어로 먼저 가입을 해주세요.", ephemeral=True)
     cur = con.cursor()
     cur.execute("""SELECT A.collection,A.value,A.hp,A.power,A.str,A.crit,A.crit_damage/100,A.damage/100 FROM 
                 collection_effect A JOIN 
@@ -1190,10 +1192,10 @@ async def miningReset(interaction: Interaction):
 
 @tree.command(name="무릉", description="무릉")
 async def mooroong(interaction: Interaction):
-    floor = {}
-    floor[interaction.user.id] = 1
     if not authorize(interaction.user.id):
         return await interaction.response.send_message("`회원가입` 명령어로 먼저 가입을 해주세요.", ephemeral=True)
+    floor = {}
+    floor[interaction.user.id] = 1
     stat = getStatus(interaction.user.id)
     stat['power'] = round(stat['power'], 2)
 
