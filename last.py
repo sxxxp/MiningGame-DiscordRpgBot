@@ -631,15 +631,15 @@ async def reinforce_weapon(interaction: Interaction, 종류: reinEnum):
             item['upgrade']
         except:
             if 종류.name == "무기":
-                cur.execute("SELECT upgrade,`rank`,name FROM user_weapon WHERE id = %s AND wear = 1",
+                cur.execute("SELECT upgrade,`rank`,name,url FROM user_weapon WHERE id = %s AND wear = 1",
                             interaction.user.id)
                 item = makeDictionary(
-                    ['upgrade', 'rank', 'name'], cur.fetchone())
+                    ['upgrade', 'rank', 'name', 'url'], cur.fetchone())
             else:
-                cur.execute("SELECT upgrade,`rank`,name FROM user_wear WHERE id = %s AND wear = 1 AND part = %s",
+                cur.execute("SELECT upgrade,`rank`,name,url FROM user_wear WHERE id = %s AND wear = 1 AND part = %s",
                             (interaction.user.id, 종류.value))
                 item = makeDictionary(
-                    ['upgrade', 'rank', 'name'], cur.fetchone())
+                    ['upgrade', 'rank', 'name', 'url'], cur.fetchone())
             if not item:
                 weapon_rein_dic[interaction.user.id] = False
                 return await interaction.response.send_message("아이템을 장착하지 않았습니다.", ephemeral=True)
@@ -653,6 +653,7 @@ async def reinforce_weapon(interaction: Interaction, 종류: reinEnum):
             return
         embed = discord.Embed(
             title=f"{item['name']}[{item['rank']}] +{item['upgrade']} > +{item['upgrade']+1} 강화")
+        embed.set_thumbnail(url=item['url'])
         req_percent = reinforce_info['percent'][str(item["upgrade"]+1)]
         req_money = reinforce_info['money'][item['rank']][str(
             item['upgrade']+1)]
