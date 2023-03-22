@@ -932,7 +932,7 @@ async def info(interaction: Interaction, 유저: discord.Member = None):
         view.add_item(button)
         button.callback = setting
         embed = discord.Embed(
-            title=f"{user['nickname']}[{'칭호없음' if stat['title'] else stat['title'] }]")
+            title=f"{user['nickname']}[{'칭호없음' if not stat['title'] else stat['title'] }]")
         string_block, level_info = block_exp(user['level'], user['exp'])
         money = format(user['money'], ",")
         exp = format(user['exp'], ",")
