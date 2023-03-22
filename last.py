@@ -374,6 +374,8 @@ async def show_collection(interaction: Interaction):
                 text += f"{translateName(j)} {'+' if item[j]>0 else ''}{item[j]}  "
         embed.add_field(
             name=f"{item['collection']} {item['value']}세트", value=text, inline=False)
+    if not values:
+        embed.add_field(name="세트효과를 받지 않고 있어요!", value='\u200b', inline=False)
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
