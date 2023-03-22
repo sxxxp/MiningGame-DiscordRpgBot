@@ -312,9 +312,9 @@ def getStatus(id: int):  # 유저 스텟 불러오기
     collection = makeDictionary(
         ['hp', 'power', 'str', 'crit', 'crit_damage', 'damage'], cur.fetchone())
     cur.execute(
-        "SELECT SUM(hp), SUM(power),SUM(`str`),SUM(crit),SUM(crit_damage),SUM(damage) FROM user_title WHERE id = %s AND wear = 1", id)
+        "SELECT name,SUM(hp), SUM(power),SUM(`str`),SUM(crit),SUM(crit_damage),SUM(damage) FROM user_title WHERE id = %s AND wear = 1", id)
     title = makeDictionary(
-        ['hp', 'power', 'str', 'crit', 'crit_damage', 'damage'], cur.fetchone())
+        ['name', 'hp', 'power', 'str', 'crit', 'crit_damage', 'damage'], cur.fetchone())
     cur.execute(
         "SELECT power,damage/100,`option` FROM user_weapon WHERE id=%s AND wear = 1", id)
     weapon = makeDictionary(['power', 'damage', 'option'], cur.fetchone())
@@ -324,11 +324,11 @@ def getStatus(id: int):  # 유저 스텟 불러오기
     stat = makeDictionary(['power', 'hp', 'str', 'crit',
                           'crit_damage', 'point'], cur.fetchone())
     final = {'power': 0, 'hp': 25, "str": 0,
-             'damage': 0, 'crit': 0, 'crit_damage': 0, 'maxhp': 0, 'point': 0}
+             'damage': 0, 'crit': 0, 'crit_damage': 0, 'maxhp': 0, 'point': 0, 'title': ''}
     for key, value in chain(wear.items(), weapon.items(), option.items(), stat.items(), collection.items(), title.items()):
         if value:
             final[key] += value
-
+    final['title'] = title['name']
     final['maxhp'] = final['hp']
     final['power'] *= final['damage']
     return final
@@ -932,7 +932,7 @@ async def info(interaction: Interaction, 유저: discord.Member = None):
         view.add_item(button)
         button.callback = setting
         embed = discord.Embed(
-            title=f"{user['nickname']}[{'칭호없음' if user['title'] else user['title'] }]")
+            title=f"{user['nickname']}[{'칭호없음' if stat['title'] else stat['title'] }]")
         string_block, level_info = block_exp(user['level'], user['exp'])
         money = format(user['money'], ",")
         exp = format(user['exp'], ",")
