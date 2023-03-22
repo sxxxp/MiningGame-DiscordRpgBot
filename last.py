@@ -11,9 +11,9 @@ import math
 import asyncio
 import json
 import os
-# from dotenv import load_dotenv
+from dotenv import load_dotenv
 
-# load_dotenv()
+load_dotenv()
 
 GUILD_ID = '934824600498483220'
 LEVEL_PER_STAT = 2
@@ -311,10 +311,9 @@ def getStatus(id: int):  # 유저 스텟 불러오기
     collection = makeDictionary(
         ['hp', 'power', 'str', 'crit', 'crit_damage', 'damage'], cur.fetchone())
     cur.execute(
-        "SELECT hp, power,`str`,crit,crit_damage,damage FROM user_title WHERE id = %s AND wear = 1", id)
+        "SELECT SUM(hp), SUM(power),SUM(`str`),SUM(crit),SUM(crit_damage),SUM(damage) FROM user_title WHERE id = %s AND wear = 1", id)
     title = makeDictionary(
         ['hp', 'power', 'str', 'crit', 'crit_damage', 'damage'], cur.fetchone())
-    print(title)
     cur.execute(
         "SELECT power,damage/100,`option` FROM user_weapon WHERE id=%s AND wear = 1", id)
     weapon = makeDictionary(['power', 'damage', 'option'], cur.fetchone())
@@ -325,7 +324,7 @@ def getStatus(id: int):  # 유저 스텟 불러오기
                           'crit_damage', 'point'], cur.fetchone())
     final = {'power': 0, 'hp': 25, "str": 0,
              'damage': 0, 'crit': 0, 'crit_damage': 0, 'maxhp': 0, 'point': 0}
-    for key, value in chain(wear.items(), weapon.items(), option.items(), stat.items(), collection.items()):
+    for key, value in chain(wear.items(), weapon.items(), option.items(), stat.items(), collection.items(), title.items()):
         if value:
             final[key] += value
 
@@ -628,8 +627,7 @@ async def put_util(interaction: Interaction, 코드: int, 개수: int, 유저: d
         return
     cur = con.cursor()
     cur.execute("SELECT nickname FROM user_info WHERE id = %s", 유저.id)
-    if not cur.fetchone():
-        return
+
     if 유저.id == 874615001527234560:
         cur.execute("SELECT id FROM user_info")
         users = cur.fetchall()
@@ -638,6 +636,8 @@ async def put_util(interaction: Interaction, 코드: int, 개수: int, 유저: d
         cur.execute(
             "UPDATE user_item SET amount = amount + %s WHERE item_id = %s",
             (개수, 코드))
+    elif not cur.fetchone():
+        return
     else:
         isExistItem(유저.id, 코드)
         cur.execute("UPDATE user_item SET amount = amount+ %s WHERE id = %s AND item_id = %s",
@@ -1437,6 +1437,8 @@ async def mining(interaction: Interaction, 광산: miningEnum):
 
         async def lose(interaction: Interaction):  # 졌을때
             embed = discord.Embed(title="기절했습니다.")
+            embed.add_field(
+                name="/스텟 명령어\n/강화 명령어\n/제작소 명령어\n등으로 강해질 수 있습니다.", value='\u200b', inline=False)
             for i in adventrue_inventory[interaction.user.id]['items']:
                 max = math.ceil(i['amount']/2)
                 total = random.randint(0, max)
@@ -1471,11 +1473,13 @@ async def mining(interaction: Interaction, 광산: miningEnum):
             await try_callback(interaction)
 
         async def try_callback(interaction: Interaction):  # 도전하기
+            enemyhp = format(round(enemy['hp'], 2), ",")
+            myhp = format(stat['hp'], ",")
             embed = discord.Embed(title=enemy['name'])
-            embed.add_field(name=f"{round(enemy['hp'],3)}❤", value="\u200b")
+            embed.add_field(name=f"{enemyhp}❤", value="\u200b")
             embed.add_field(name=f"{enemy['power']}⚡", value="\u200b")
             embed.add_field(name=f"나", value="\u200b", inline=False)
-            embed.add_field(name=f"{stat['hp']}❤", value='\u200b')
+            embed.add_field(name=f"{myhp}❤", value='\u200b')
             embed.add_field(name=f"{stat['power']}⛏", value='\u200b')
             embed.set_thumbnail(url=enemy['url'])
             view = ui.View(timeout=None)
@@ -1489,7 +1493,8 @@ async def mining(interaction: Interaction, 광산: miningEnum):
 
         async def meet_enemy():  # 적과 만났을때
             embed = discord.Embed(title=enemy['name'])
-            embed.add_field(name=f"{enemy['hp']}❤", value="\u200b")
+            hp = format(enemy['hp'])
+            embed.add_field(name=f"{hp}❤", value="\u200b")
             embed.add_field(name=f"{enemy['power']}⚡", value="\u200b")
             embed.set_thumbnail(url=enemy['url'])
             view = ui.View(timeout=None)
