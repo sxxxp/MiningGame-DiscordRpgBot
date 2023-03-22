@@ -110,6 +110,8 @@
         "trade":false,
         "required":{
           "1": 5,
+          "5": 2,
+          "6": 10,
           "money":1000
         },
         "percent":100
