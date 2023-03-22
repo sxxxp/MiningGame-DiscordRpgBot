@@ -355,6 +355,16 @@ async def sync(interaction: Interaction):
         await tree.sync()
 
 
+@tree.command(name="세트효과", description="현재 적용받는 세트효과를 보여줍니다.")
+async def show_collection(interaction: Interaction):
+    cur = con.cursor()
+    cur.execute("""SELECT A.collection,A.value,A.hp,A.power,A.str,A.crit,A.crit_damage/100,A.damage/100 FROM 
+                collection_effect A JOIN 
+                (SELECT collection as col,COUNT(collection) as cnt FROM user_wear
+                WHERE wear=1 AND id=%s GROUP BY collection)
+                B ON B.col = A.collection WHERE B.cnt>=A.value""", interaction.user.id)
+
+
 @tree.command(name="스텟초기화", description="스텟초기화")
 async def reset_stat(interaction: Interaction):
     if not authorize(interaction.user.id):
