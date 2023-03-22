@@ -86,6 +86,7 @@ class makeItemEnum(Enum):
     무기 = "weapon"
     방어구 = "wear"
     기타 = "item"
+    칭호 = "title"
 
 
 class miningEnum(Enum):
@@ -187,6 +188,16 @@ def getWeapon(name: str, index: int, id: int):
         (item['name'], 0, item['rank'], item['level'], power, damage, 0, item['trade'], id, item['url']))
     con.commit()
     cur.close()
+
+
+def getTitle(name: str, index: int, id: int):
+    cur = con.cursor()
+    items = getJson("./json/makeItem.json")
+    item = items['title'][index][name]
+    cur.execute(
+        "INSERT INTO user_title(name,`rank`,level,power,hp,`str`,crit,crit_damage,damage,description,wear,trade,id) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+        (item['name'], item['rank'], item['level'], item['power'], item['hp'], item['str'], item['crit'], item['crit_damage'], item['damage'], item['description'], 0, item['trade'], id))
+    con.commit()
 
 
 def useNotTradeFirst(name: str, amount: int, id: int):
@@ -294,9 +305,16 @@ def getStatus(id: int):  # 유저 스텟 불러오기
         "SELECT SUM(power),SUM(hp),SUM(str/10) FROM user_wear WHERE id=%s AND wear = 1 ", id)
     wear = makeDictionary(['power', 'hp', 'str'], cur.fetchone())
     cur.execute("""
-                SELECT SUM(A.hp),SUM(A.power),SUM(A.str),SUM(A.crit),SUM(A.crit_damage/100),SUM(A.damage/100) FROM collection_effect A JOIN (SELECT collection as col,COUNT(collection) as cnt FROM user_wear WHERE wear=1 AND id=%s GROUP BY collection) B ON B.col = A.collection WHERE B.cnt>=A.value""", id)
+                SELECT SUM(A.hp),SUM(A.power),SUM(A.str),SUM(A.crit),SUM(A.crit_damage/100),SUM(A.damage/100) FROM
+                collection_effect A JOIN (SELECT collection as col,COUNT(collection) as cnt FROM user_wear WHERE wear=1 AND id=%s GROUP BY collection) B
+                ON B.col = A.collection WHERE B.cnt>=A.value""", id)
     collection = makeDictionary(
         ['hp', 'power', 'str', 'crit', 'crit_damage', 'damage'], cur.fetchone())
+    cur.execute(
+        "SELECT hp, power,`str`,crit,crit_damage,damage FROM user_title WHERE id = %s AND wear = 1", id)
+    title = makeDictionary(
+        ['hp', 'power', 'str', 'crit', 'crit_damage', 'damage'], cur.fetchone())
+    print(title)
     cur.execute(
         "SELECT power,damage/100,`option` FROM user_weapon WHERE id=%s AND wear = 1", id)
     weapon = makeDictionary(['power', 'damage', 'option'], cur.fetchone())
@@ -340,9 +358,12 @@ def setup():  # 데이터베이스 테이블 생성
     # enemy 광석(이름,힘,체력,층,드롭아이템코드,드롭아이템확률,드롭아이템개수,유틸아이템코드,유틸아이템드롭확률,유틸아이템드롭개수,이미지)
     cur.execute("""CREATE TABLE IF NOT EXISTS enemy
                 (name TEXT,power INT,hp INT,floor INT,exp INT,item_code TEXT,item_percent TEXT,item_amount TEXT,util_code TEXT,util_percent TEXT,util_amount TEXT,url TEXT)""")
-    # collection_effect 컬렉션효과(컬렉션,체력,무게,크리티컬,힘,개수)
+    # collection_effect 컬렉션효과(컬렉션,체력,무게,크리티컬 확률,힘,크리티컬 데미지,데미지,개수)
     cur.execute("""CREATE TABLE IF NOT EXISTS collection_effect
                 (collection TEXT, hp INT, `str` INT, crit INT, power INT,crit_damage INT,damage INT, value INT)""")
+    # user_title 유저 칭호(아이템아이디,이름,등급,레벨,체력,무게,크리티컬,힘,크리티컬 데미지,데미지,설명,착용여부,거래여부,아이디)
+    cur.execute("""CREATE TABLE IF NOT EXISTS user_title
+                (item_id INT PRIMARY KEY AUTO_INCREMENT,name TEXT,`rank` TEXT,level INT, hp INT, `str` INT, crit INT,power INT, crit_damage INT, damage INT,description TEXT,wear BOOLEAN,trade BOOLEAN,id TEXT)""")
 
 
 @tree.command(name="커맨드싱크", description="제작자 전용 명령어")
@@ -431,6 +452,9 @@ async def makeItem(interaction: Interaction, 종류: makeItemEnum):
                 elif category == "item":
                     option = SelectOption(
                         label=i, description=f"{'거래가능' if utils[item[i]['code']]['trade'] else '거래불가'}", value=index)
+                elif category == "title":
+                    option = SelectOption(
+                        label=f"Lv.{item[i]['level']} {i}", description=item[i]['description'], value=index)
                 else:
                     option = SelectOption(
                         label=f"Lv.{item[i]['level']} {i}", value=index)
@@ -461,16 +485,23 @@ async def makeItem(interaction: Interaction, 종류: makeItemEnum):
                     item = items[category][index][i]
                     name = i
                     embed = discord.Embed(title=i)
-                    if not category == "item":
+                    if not category == "item" and not category == "title":
                         embed.set_thumbnail(url=item['url'])
                     for j in item['required']:
-                        req_items.append(utils[j]['name'])
+                        if j == "money":
+                            req_items.append("골드")
+                        else:
+                            req_items.append(utils[j]['name'])
                         req_amounts.append(
                             item['required'][j])
                         embed.add_field(
-                            name="재료", value=f"{utils[j]['name']} {item['required'][j]*cnt[interaction.user.id]} 개")
-                        cur.execute(
-                            "SELECT SUM(amount) FROM user_item WHERE name = %s AND id = %s", (utils[j]['name'], interaction.user.id))
+                            name="재료", value=f"{req_items[-1]} {item['required'][j]*cnt[interaction.user.id]} 개")
+                        if req_items[-1] == "골드":
+                            cur.execute(
+                                "SELECT money FROM user_info WHERE id = %s", interaction.user.id)
+                        else:
+                            cur.execute(
+                                "SELECT SUM(amount) FROM user_item WHERE name = %s AND id = %s", (utils[j]['name'], interaction.user.id))
                         allitem = cur.fetchone()
                         if allitem[0] == None:
                             disabled = True
@@ -513,6 +544,10 @@ async def makeItem(interaction: Interaction, 종류: makeItemEnum):
 
                 async def make_callback(interaction: Interaction):
                     for i in range(len(req_amounts)):
+                        if req_items[i] == "골드":
+                            cur.execute(
+                                "UPDATE user_info SET money = money - %s WHERE id = %s", (req_amounts[i]*cnt[interaction.user.id], interaction.user.id))
+                            con.commit()
                         useNotTradeFirst(
                             req_items[i], req_amounts[i]*cnt[interaction.user.id], interaction.user.id)
                     if category != "item":
@@ -521,6 +556,8 @@ async def makeItem(interaction: Interaction, 종류: makeItemEnum):
                                 getWear(name, index, interaction.user.id)
                             if category == "weapon":
                                 getWeapon(name, index, interaction.user.id)
+                            if category == "title":
+                                getTitle(name, index, interaction.user.id)
                             return await interaction.response.edit_message(content="제작 성공!", embed=None, view=None)
                         else:
                             return await interaction.response.edit_message(content="제작 실패...", embed=None, view=None)
@@ -959,28 +996,11 @@ async def inventory(interaction: Interaction, 종류: makeItemEnum):
             embed.add_field(name=f"{wear['collection']} 세트", value='\u200b')
             embed.set_thumbnail(url=wear['url'])
             embed.set_footer(text=f"아이템 코드 : {wear['item_id']}")
-            view = ui.View()
-            equip = ui.Button(label="착용하기", style=ButtonStyle.green,
-                              disabled=level < wear['level'])
-            back = ui.Button(label="돌아가기", style=ButtonStyle.red)
-            view.add_item(equip)
-            view.add_item(back)
-
-            async def equip_callback(interaction: Interaction):
-                cur.execute("UPDATE user_wear SET wear = 0 WHERE part = %s AND wear = 1 AND id = %s",
-                            (wear['part'], interaction.user.id))
-                cur.execute(
-                    "UPDATE user_wear SET wear = 1 WHERE item_id = %s", wear['item_id'])
-                con.commit()
-                await detail_callback(interaction)
-            equip.callback = equip_callback
-            back.callback = setup
-            await interaction.response.edit_message(embed=embed, view=view)
 
         if category == "weapon":
             cur.execute(
                 "SELECT item_id,name,upgrade,`rank`,level,power,damage/100,`option`,wear,trade,url FROM user_weapon WHERE id = %s ORDER BY item_id ASC LIMIT %s,1 ",
-                (interaction.user.id, index[interaction.user.id]))
+                (interaction.user.id, page[interaction.user.id]*10+index[interaction.user.id]))
             weapon = makeDictionary(['item_id', 'name', 'upgrade', 'rank', 'level',
                                     'power', 'damage', 'option', 'wear', 'trade', 'url'], cur.fetchone())
             cur.execute(
@@ -1002,29 +1022,77 @@ async def inventory(interaction: Interaction, 종류: makeItemEnum):
             embed.add_field(
                 name=f"데미지 : {round(weapon['damage'],2)}({'+' if weapon['damage']-gap['damage']>0 else ''}{round(weapon['damage']-gap['damage'],2)})", value='\u200b')
             embed.add_field(name=f"옵션 : {weapon['option']}", value='\u200b')
-            view = ui.View()
+
+        if category == "title":
+            cur.execute(
+                "SELECT item_id,name,`rank`,level,power,hp,`str`,crit,crit_damage/100,damage/100,wear,trade FROM user_title WHERE id = %s ORDER BY item_id ASC LIMIT %s,1 ",
+                (interaction.user.id, page[interaction.user.id]*10+index[interaction.user.id]))
+            title = makeDictionary(['item_id', 'name', 'rank', 'level', 'power', 'hp', 'str',
+                                   'crit', 'crit_damage', 'damage', 'wear', 'trade'], cur.fetchone())
+            cur.execute(
+                "SELECT power,hp,`str`,crit,crit_damage,damage FROM user_title WHERE id = %s AND wear = 1", interaction.user.id)
+            check = cur.fetchone()
+            gap = {'power': 0, "hp": 0, "str": 0,
+                   "crit": 0, "crit_damage": 0, "damage": 0}
+            if check:
+                gap['power'] = check[0]
+                gap['hp'] = check[1]
+                gap['str'] = check[2]
+                gap['crit'] = check[3]
+                gap['crit_damage'] = check[4]
+                gap['damage'] = check[5]
+            cur.execute("SELECT level FROM user_info WHERE id = %s",
+                        interaction.user.id)
+            level = cur.fetchone()[0]
+            embed = discord.Embed(
+                title=f"Lv.{title['level']} {title['name']}[{title['rank']}] ({'거래가능' if title['trade'] else '거래불가'}) {'착용중' if title['wear'] else ''}")
+            embed.set_footer(text=f"아이템코드 : {title['item_id']}")
+            for i in [{"name": "힘", "value": "power"}, {"name": "체력", "value": "hp"}, {"name": "중량", "value": "str"}, {"name": "크리티컬 확률", "value": "crit"}, {"name": "크리티컬 데미지", "value": "crit_damage"}, {"name": "데미지", "value": "damage"}]:
+                if i['value'] == "crit_damage" or i['value'] == "damage":
+                    embed.add_field(
+                        name=f"{i['name']} : {round(title[i['value']],2)}({'+' if title[i['value']]-gap[i['value']]>0 else ''}{round(title[i['value']]-gap[i['value']],2)})", value="\u200b")
+                else:
+                    embed.add_field(
+                        name=f"{i['name']} : {title[i['value']]}({'+' if title[i['value']]-gap[i['value']]>0 else ''}{title[i['value']]-gap[i['value']]})", value="\u200b")
+
+        async def equip_callback(interaction: Interaction):
+            cur = con.cursor()
+            if category == "wear":
+                cur.execute("UPDATE user_wear SET wear = 0 WHERE part = %s AND wear = 1 AND id = %s",
+                            (wear['part'], interaction.user.id))
+                cur.execute(
+                    "UPDATE user_wear SET wear = 1 WHERE item_id = %s", wear['item_id'])
+            if category == "weapon":
+                cur.execute("UPDATE user_weapon SET wear = 0 WHERE wear = 1 AND id = %s",
+                            (interaction.user.id))
+                cur.execute(
+                    "UPDATE user_weapon SET wear = 1 WHERE item_id = %s", weapon['item_id'])
+            if category == "title":
+                cur.execute(
+                    "UPDATE user_title SET wear = 0 WHERE wear =1 AND id = %s ", (interaction.user.id))
+                cur.execute(
+                    "UPDATE user_title SET wear = 1 WHERE item_id = %s", title['item_id'])
+            con.commit()
+            await detail_callback(interaction)
+
+        view = ui.View(timeout=None)
+        if category == "weapon":
             equip = ui.Button(label="착용하기", style=ButtonStyle.green,
                               disabled=level < weapon['level'])
-            back = ui.Button(label="돌아가기", style=ButtonStyle.red)
-            view.add_item(equip)
-            view.add_item(back)
+        elif category == "wear":
+            equip = ui.Button(label="착용하기", style=ButtonStyle.green,
+                              disabled=level < wear['level'])
 
-            async def equip_callback(interaction: Interaction):
-                if category == "wear":
-                    cur.execute("UPDATE user_wear SET wear = 0 WHERE part = %s AND wear = 1 AND id = %s",
-                                (wear['part'], interaction.user.id))
-                    cur.execute(
-                        "UPDATE user_wear SET wear = 1 WHERE item_id = %s", wear['item_id'])
-                if category == "weapon":
-                    cur.execute("UPDATE user_weapon SET wear = 0 WHERE wear = 1 AND id = %s",
-                                (interaction.user.id))
-                    cur.execute(
-                        "UPDATE user_weapon SET wear = 1 WHERE item_id = %s", weapon['item_id'])
-                con.commit()
-                await detail_callback(interaction)
-            equip.callback = equip_callback
-            back.callback = setup
-            await interaction.response.edit_message(embed=embed, view=view)
+        elif category == "title":
+            equip = ui.Button(label="착용하기", style=ButtonStyle.green,
+                              disabled=level < title['level'])
+        back = ui.Button(label="돌아가기", style=ButtonStyle.red)
+        view.add_item(equip)
+        view.add_item(back)
+
+        equip.callback = equip_callback
+        back.callback = setup
+        await interaction.response.edit_message(embed=embed, view=view)
 
     async def checkout_callback(interaction: Interaction):
         class checkoutModal(ui.Modal, title="아이템을 선택해주세요."):
@@ -1066,6 +1134,12 @@ async def inventory(interaction: Interaction, 종류: makeItemEnum):
             for i in cur.fetchall():
                 embed.add_field(
                     name=f"Lv.{i[3]} {i[0]}[{i[2]}] +{i[1]} ({'거래가능' if i[-1] else '거래불가'}) {'착용중' if i[-2] else ''}", value=f"{i[4]} 세트", inline=False)
+        elif category == "title":
+            cur.execute(
+                "SELECT name,`rank`,level,wear,trade FROM user_title WHERE id = %s ORDER BY item_id ASC LIMIT %s,10", (interaction.user.id, page[interaction.user.id]*10))
+            for i in cur.fetchall():
+                embed.add_field(
+                    name=f"Lv.{i[2]} {i[0]}[{i[1]}] ({'거래가능' if i[-1] else '거래불가'}) {'착용중' if i[-2] else ''}", value='\u200b', inline=False)
         else:
             cur.execute("SELECT name,upgrade,`rank`,level,wear,trade FROM user_weapon WHERE id = %s ORDER BY item_id ASC LIMIT %s,10",
                         (interaction.user.id, page[interaction.user.id]*10))
