@@ -319,7 +319,6 @@ def getStatus(id: int):  # 유저 스텟 불러오기
     for key, value in chain(wear.items(), weapon.items(), option.items(), stat.items(), collection.items(), title.items()):
         if value:
             final[key] += value
-    final['title'] = title['name']
     final['maxhp'] = final['hp']
     final['power'] *= final['damage']
     return final
