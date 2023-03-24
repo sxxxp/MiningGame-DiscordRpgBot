@@ -47,11 +47,13 @@ class MyClient(discord.Client):
         cur.execute("UPDATE user_item SET amount = 1 WHERE item_id = %s", 2)
 
         con.commit()
+        cur.close()
 
     @tasks.loop(hours=1)
     async def reconnect_db(self):
         cur = con.cursor()
         cur.execute("SELECT * FROM user_info")
+        cur.close()
 
     async def change_message(self):
         while not client.is_closed():
@@ -247,7 +249,9 @@ def is_levelup(level: int, exp: int, id: int):  # 레벨업 했을때
         "UPDATE user_info SET level = level + %s , exp = %s WHERE id = %s", (num, exp, id))
     cur.execute(
         "UPDATE user_stat SET point = point + %s WHERE id = %s", (num*LEVEL_PER_STAT, id))
+    cur.close()
     con.commit()
+
     return num
 
 
@@ -282,7 +286,9 @@ def getOption(option: str):  # 무기 옵션 구하기
 def authorize(id: int):  # 유저 정보가 있으면 True
     cur = con.cursor()
     cur.execute("SELECT * FROM user_info WHERE id = %s", id)
-    return cur.fetchone() != None
+    value = cur.fetchone() != None
+    cur.close()
+    return value
 
 
 def getJson(url: str):  # JSON 구하기
@@ -322,6 +328,7 @@ def getStatus(id: int):  # 유저 스텟 불러오기
             final[key] += value
     final['maxhp'] = final['hp']
     final['power'] *= final['damage']
+    cur.close()
     return final
 
 
@@ -355,6 +362,7 @@ def setup():  # 데이터베이스 테이블 생성
     # user_title 유저 칭호(아이템아이디,이름,등급,레벨,체력,무게,크리티컬,힘,크리티컬 데미지,데미지,설명,착용여부,거래여부,아이디)
     cur.execute("""CREATE TABLE IF NOT EXISTS user_title
                 (item_id INT PRIMARY KEY AUTO_INCREMENT,name TEXT,`rank` TEXT,level INT, hp INT, `str` INT, crit INT,power INT, crit_damage INT, damage INT,description TEXT,wear BOOLEAN,trade BOOLEAN,id TEXT)""")
+    cur.close()
 
 
 @tree.command(name="커맨드싱크", description="제작자 전용 명령어")
@@ -380,6 +388,7 @@ async def show_collection(interaction: Interaction):
                 B ON B.col = A.collection WHERE B.cnt>=A.value""", interaction.user.id)
     embed = discord.Embed(title="세트효과")
     values = cur.fetchall()
+    cur.close()
     for i in values:  # 설명 embed 작성
         text = ''
         item = makeDictionary(
@@ -403,6 +412,7 @@ async def reset_stat(interaction: Interaction):
                 (interaction.user.id, 8))
     amount = cur.fetchone()
     if not amount:  # db에 스크롤이 없을때
+        cur.close()
         return await interaction.response.send_message("`스텟 초기화 스크롤`이 없습니다.", ephemeral=True)
     else:
         if not amount[0]:  # 스크롤 개수가 0 개 일때
@@ -415,6 +425,7 @@ async def reset_stat(interaction: Interaction):
         level = cur.fetchone()[0]
         cur.execute("UPDATE user_stat SET power = 1 , str = 5, hp = 5, crit_damage=50 ,point = %s WHERE id = %s",
                     (level*LEVEL_PER_STAT, interaction.user.id))
+        cur.close()
         con.commit()
         await interaction.response.send_message("성공적으로 스텟을 초기화 했습니다.", ephemeral=True)
 
@@ -548,6 +559,7 @@ async def makeItem(interaction: Interaction, 종류: makeItemEnum):
                         useNotTradeFirst(
                             req_items[i], req_amounts[i]*cnt[interaction.user.id], interaction.user.id)
                     if category != "item":
+                        cur.close()
                         if getSuccess(percent, 100):
                             if category == "wear":
                                 getWear(item, interaction.user.id)
@@ -565,6 +577,7 @@ async def makeItem(interaction: Interaction, 종류: makeItemEnum):
                                 real_cnt += 1
 
                         getItem(item['code'], interaction.user.id, real_cnt)
+                        cur.close()
                         return await interaction.response.edit_message(content=f"{cnt[interaction.user.id]}회 중 {real_cnt}번 성공!", embed=None, view=None)
 
                 makebutton.callback = make_callback
@@ -612,7 +625,8 @@ async def deleteUser(interaction: Interaction):
                             interaction.user.id)
                 cur.execute("DELETE FROM user_title WHERE id = %s",
                             interaction.user.id)
-
+                cur.close()
+                con.commit()
                 return await interaction.response.send_message("성공적으로 캐릭터를 삭제했습니다.", ephemeral=True)
             else:
                 return await interaction.response.send_message("캐릭터 삭제 실패", ephemeral=True)
@@ -634,8 +648,11 @@ async def put_util(interaction: Interaction, 코드: int, 개수: int, 유저: d
         cur.execute(
             "UPDATE user_item SET amount = amount + %s WHERE item_id = %s",
             (개수, 코드))
+        con.commit()
+        cur.close()
         return await interaction.response.send_message(f"모든 유저에게 {코드} 아이템 {개수} 개를 성공적으로 넣었습니다", ephemeral=True)
     elif not cur.fetchone():
+        cur.close()
         return
     else:
         isExistItem(유저.id, 코드)
@@ -741,6 +758,7 @@ async def reinforce_weapon(interaction: Interaction, 종류: reinEnum):
         view.add_item(back)
 
         async def back_callback(interacation: Interaction):  # 끝내기 버튼 클릭시
+            cur.close()
             weapon_rein_dic[interaction.user.id] = False
             await interacation.response.edit_message(content=".", embed=None, view=None)
             await interacation.delete_original_response()
@@ -811,6 +829,7 @@ async def ranking(interaction: Interaction, 종류: rankingEnum):
             "SELECT DENSE_RANK() OVER (ORDER BY mooroong DESC, create_at ASC) RANKING FROM user_info WHERE id= %s", interaction.user.id)
 
     embed.set_footer(text=f"내 순위 : {cur.fetchone()[0]}위")
+    cur.close()
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
@@ -827,6 +846,7 @@ async def trade(interaction: Interaction, 유저: discord.Member, 종류: makeIt
         try:
             canTrade, amount = cur.fetchone()
         except:
+            cur.close()
             return await interaction.response.send_message("아이템이 없습니다", ephemeral=True)
     else:  # 아이템 보유중인지 확인하기
         cur.execute(
@@ -834,6 +854,7 @@ async def trade(interaction: Interaction, 유저: discord.Member, 종류: makeIt
         try:
             canTrade = cur.fetchone()[0]
         except:
+            cur.close()
             return await interaction.response.send_message("아이템이 없습니다.", ephemeral=True)
     if canTrade:  # 거래가능시
         if category == "item":  # 기타아이템 거래
@@ -843,9 +864,11 @@ async def trade(interaction: Interaction, 유저: discord.Member, 종류: makeIt
                 isExistItem(interaction.user.id, 코드)
                 cur.execute(
                     "UPDATE user_item SET amount = amount + %s WHERE id = %s AND item_id = %s", (개수, 유저.id, 코드))
+                cur.close()
                 con.commit()
                 return await interaction.response.send_message(f"`{유저.display_name}`님에게 `{item_data[str(코드)]['name']}`를 `{개수}` 개 전달했습니다.", ephemeral=True)
             else:
+                cur.close()
                 return await interaction.response.send_message("아이템이 부족합니다.", ephemeral=True)
         elif category != "item":  # 아이템 거래
             cur.execute(
@@ -853,9 +876,10 @@ async def trade(interaction: Interaction, 유저: discord.Member, 종류: makeIt
             con.commit()
             cur.execute(
                 f"SELECT name FROM user_{category} WHERE item_id = {코드}")
+            cur.close()
             return await interaction.response.send_message(f"`{유저.display_name}`님에게 `{cur.fetchone()[0]}`를 전달했습니다.", ephemeral=True)
-
-    else:
+    else:  # 거래불가시
+        cur.close()
         return await interaction.response.send_message("거래할 수 없는 아이템 입니다.", ephemeral=True)
 
 
@@ -878,6 +902,7 @@ async def status(interaction: Interaction, 스텟: statusEnum, 포인트: int):
             point = point - {포인트} , 
             {스텟.value.replace("'","")} = {스텟.value.replace("'","")} + {포인트} 
             WHERE id = {interaction.user.id}""",)
+            cur.close()
             con.commit()
             message = f'`{스텟.name} +{포인트}`'
     await interaction.response.send_message(message, ephemeral=True)
@@ -888,7 +913,7 @@ async def status(interaction: Interaction, 스텟: statusEnum, 포인트: int):
 @tree.command(name="강화초기화", description="운영자를 부르세요.")
 async def reinforceReset(interaction: Interaction, 유저: discord.Member):
     if interaction.user.id == 432066597591449600:  # 강화에 예기치못한 에러가 생겼을때.
-        reinforce_weapon[유저.id] = False
+        weapon_rein_dic[유저.id] = False
     else:
         author = await client.fetch_user(432066597591449600)
         await author.send(f"{interaction.user}님의 호출이에요.")
@@ -909,6 +934,7 @@ async def register(interaction: Interaction, 닉네임: str):
                     VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
                     ('기본 곡괭이', 0, 'F', 1, 5, 100, 1, 0, interaction.user.id, "https://cdn.discordapp.com/attachments/988424121878741022/1040198148661973022/pickaxe1.png"))
         con.commit()
+        cur.close()
         await interaction.response.send_message("아이디가 생성되었습니다.", ephemeral=True)
 
 
@@ -927,6 +953,7 @@ async def info(interaction: Interaction, 유저: discord.Member = None):
             "SELECT nickname,exp,level,money,create_at,mooroong FROM user_info WHERE id=%s", id)
         user = makeDictionary(
             ['nickname', 'exp', 'level', 'money', 'create_at', 'moorong'], cur.fetchone())
+        cur.close()
         stat = getStatus(id)
         # embed 생성
         view = ui.View(timeout=None)
@@ -972,6 +999,7 @@ async def inventory(interaction: Interaction, 종류: makeItemEnum):
     category: str = 종류.value
     page[interaction.user.id] = 0
     index = {}
+    cur = con.cursor()
 
     async def next_callback(interaction: Interaction):  # 다음으로 버튼 클릭시
         page[interaction.user.id] += 1
@@ -982,7 +1010,6 @@ async def inventory(interaction: Interaction, 종류: makeItemEnum):
         await setup(interaction)
 
     async def detail_callback(interaction: Interaction):  # 선택완료시
-        cur = con.cursor()
 
         if category == "wear":  # 방어구일때
             # 해당 방어구 불러오기
@@ -1086,7 +1113,6 @@ async def inventory(interaction: Interaction, 종류: makeItemEnum):
                         name=f"{i['name']} : {title[i['value']]}({'+' if title[i['value']]-gap[i['value']]>0 else ''}{title[i['value']]-gap[i['value']]})", value="\u200b")
 
         async def equip_callback(interaction: Interaction):  # 착용하기 버튼 클릭시
-            cur = con.cursor()
             if category == "wear":
                 cur.execute("UPDATE user_wear SET wear = 0 WHERE part = %s AND wear = 1 AND id = %s",
                             (wear['part'], interaction.user.id))
@@ -1145,7 +1171,6 @@ async def inventory(interaction: Interaction, 종류: makeItemEnum):
         await interaction.response.send_modal(checkoutModal())
 
     async def setup(interaction: Interaction):  # 유저 아이템 불러오는 함수
-        cur = con.cursor()
         embed = discord.Embed(title="인벤토리")
         cur.execute(
             f"SELECT COUNT(*) FROM user_{category} WHERE id = {interaction.user.id}",)
@@ -1223,6 +1248,7 @@ async def mooroong(interaction: Interaction):
     floor[interaction.user.id] = 1
     stat = getStatus(interaction.user.id)
     stat['power'] = round(stat['power'], 2)
+    cur = con.cursor()
 
     async def go_callback(interaction: Interaction):  # 도전하기
         enemy = makeDictionary(['name', 'power', 'hp'], ("시련의 광석",
@@ -1245,9 +1271,9 @@ async def mooroong(interaction: Interaction):
         async def lose(interaction: Interaction):  # 졌을때
             embed = discord.Embed(
                 title=f"기절했습니다. {floor[interaction.user.id]}층 도달.")
-            cur = con.cursor()
             cur.execute("UPDATE user_info SET mooroong = %s WHERE id = %s",
                         (floor[interaction.user.id], interaction.user.id))
+            cur.close()
             con.commit()
             await interaction.response.edit_message(content="", embed=embed, view=None)
 
@@ -1542,6 +1568,7 @@ async def mining(interaction: Interaction, 광산: miningEnum):
         embed.set_footer(text=f"예상 수익 : {result}골드")
         cur.execute("UPDATE user_info SET money = money + %s WHERE id = %s",
                     (result, interaction.user.id))
+        cur.close()
         con.commit()
         mining_dic[interaction.user.id] = False
         await interaction.response.edit_message(content="", embed=embed, view=None)
