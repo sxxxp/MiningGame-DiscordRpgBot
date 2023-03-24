@@ -1379,7 +1379,7 @@ async def mining(interaction: Interaction, 광산: miningEnum):
 
             class amountModal(ui.Modal, title=f"{name} {amount}개"):
                 answer = ui.TextInput(
-                    label="개수", placeholder="제거할 개수를 선택해주세요.", required=True)
+                    label="개수", placeholder="제거할 개수를 선택해주세요.", required=True, default=amount)
 
                 async def on_submit(self, interaction: Interaction):
                     try:
