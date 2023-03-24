@@ -41,17 +41,17 @@ class MyClient(discord.Client):
             isExistItem(i[0], 2)
             if weekday == 4:
                 isExistItem(i[0], 4)
-                cur.execute(
-                    "UPDATE user_item SET amount = 1 WHERE item_id = %s", 4)
+        if weekday == 4:
+            cur.execute(
+                "UPDATE user_item SET amount = 1 WHERE item_id = %s", 4)
         cur.execute("UPDATE user_item SET amount = 1 WHERE item_id = %s", 2)
 
         con.commit()
 
     @tasks.loop(hours=1)
     async def reconnect_db(self):
-        global con
-        con = pymysql.connect(host=os.environ['host'], password=os.environ['password'],
-                              user=os.environ['user'], port=int(os.environ['port']), database=os.environ['database'], charset='utf8')
+        cur = con.cursor()
+        cur.execute("SELECT * FROM user_info")
 
     async def change_message(self):
         while not client.is_closed():
@@ -63,6 +63,7 @@ class MyClient(discord.Client):
         await self.wait_until_ready()
         setup()
         self.reward.start()
+        self.reconnect_db.start()
         # guild = discord.Object(id=GUILD_ID)
         # tree.clear_commands(
         #     guild=guild, type=discord.AppCommandType.chat_input)
