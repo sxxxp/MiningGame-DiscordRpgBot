@@ -33,13 +33,13 @@ class MyClient(discord.Client):
 
     @tasks.loop(time=datetime.time(hour=0, minute=0, second=0, tzinfo=KST))
     async def reward(self):
-        weekday = datetime.datetime.now().weekday()
+        weekday = datetime.datetime.now(tz=KST).weekday()
         cur = con.cursor()
         cur.execute("SELECT id FROM user_info")
         user = cur.fetchall()
         for i in user:
             isExistItem(i[0], 2)
-            if weekday == 3:
+            if weekday == 4:
                 isExistItem(i[0], 4)
                 cur.execute(
                     "UPDATE user_item SET amount = 1 WHERE item_id = %s", 4)
@@ -100,7 +100,7 @@ class makeItemEnum(Enum):  # 제작소,인벤토리 열거형
 class miningEnum(Enum):  # 광산 열거형
     기본광산 = 1
     광산 = 2
-    요일광산EASY = -datetime.datetime.today().weekday()
+    요일광산EASY = -datetime.datetime.now(tz=KST).weekday()
     주간광산EASY = -8
 
 
