@@ -42,8 +42,10 @@ class MyClient(discord.Client):
 
     @tasks.loop(hours=1)
     async def reconnect_db(self):
-        cur = con.cursor()
-        cur.execute("SELECT * FROM user_info")
+        global con
+        con = pymysql.connect(host=os.environ['host'], password=os.environ['password'],
+            user=os.environ['user'], port=int(os.environ['port']), database=os.environ['database'], charset='utf8')
+
 
     async def change_message(self):
         while not client.is_closed():
@@ -257,12 +259,11 @@ def is_levelup(level: int, exp: int, id: int):
 
 
 def makeDictionary(keys: list, values: tuple):
-    if not values:
+    if not values or not keys:
         return False
-    dictionary = {}
-    for i in range(len(keys)):
-        dictionary.update({keys[i]: values[i]})
-    return dictionary
+    return {keys[i]: values[i] for i in range(len(keys))}
+
+
 
 
 def getOption(option: str):
