@@ -11,15 +11,22 @@ import math
 import asyncio
 import json
 import os
-# from dotenv import load_dotenv
+from dotenv import load_dotenv
 
-# load_dotenv()
+load_dotenv()
 
 GUILD_ID = '934824600498483220'
 LEVEL_PER_STAT = 2
 KST = datetime.timezone(datetime.timedelta(hours=9))
 ticket = {
-    -0: 2, -1: 2, -2: 2, -3: 2, -4: 2, -5: 2, -6: 2, -8: 4}
+    -0: {'code': 2, 'cnt': 3},
+    -1: {'code': 2, 'cnt': 3},
+    -2: {'code': 2, 'cnt': 3},
+    -3: {'code': 2, 'cnt': 3},
+    -4: {'code': 2, 'cnt': 3},
+    -5: {'code': 2, 'cnt': 3},
+    -6: {'code': 2, 'cnt': 3},
+    -8: {'code': 4, 'cnt': 6}}
 
 
 class MyClient(discord.Client):
@@ -44,8 +51,7 @@ class MyClient(discord.Client):
     async def reconnect_db(self):
         global con
         con = pymysql.connect(host=os.environ['host'], password=os.environ['password'],
-            user=os.environ['user'], port=int(os.environ['port']), database=os.environ['database'], charset='utf8')
-
+                              user=os.environ['user'], port=int(os.environ['port']), database=os.environ['database'], charset='utf8')
 
     async def change_message(self):
         while not client.is_closed():
@@ -76,7 +82,7 @@ mining_dic = {}
 cnt = {}
 
 
-class reinEnum(Enum):
+class reinEnum(Enum):  # 강화 열거형
     무기 = 0
     투구 = 1
     갑옷 = 2
@@ -84,52 +90,52 @@ class reinEnum(Enum):
     신발 = 4
 
 
-class makeItemEnum(Enum):
+class makeItemEnum(Enum):  # 제작소,인벤토리 열거형
     무기 = "weapon"
     방어구 = "wear"
     기타 = "item"
     칭호 = "title"
 
 
-class miningEnum(Enum):
+class miningEnum(Enum):  # 광산 열거형
     기본광산 = 1
     광산 = 2
     요일광산EASY = -datetime.datetime.today().weekday()
     주간광산EASY = -8
 
 
-class statusEnum(Enum):
+class statusEnum(Enum):  # 스텟 열거형
     힘 = 'power'
     체력 = 'hp'
     중량 = 'str'
     크리티컬데미지 = 'crit_damage'
 
 
-class rankingEnum(Enum):
+class rankingEnum(Enum):  # 랭킹 열거형
     레벨 = 'level'
     자산 = 'money'
     무릉 = 'mooroong'
 
 
-def isExistItem(id: int, code: int):
+def isExistItem(id: int, code: int):  # 아이템 있는지 확인
     cur = con.cursor()
     utils = getJson('./json/util.json')
     util = utils[str(code)]
-    cur.execute(
+    cur.execute(  # code에 해당하는 아이템이 있는지 확인
         "SELECT * FROM user_item WHERE id = %s AND item_id = %s", (id, code))
-    if not cur.fetchone():
+    if not cur.fetchone():  # 없으면 아이템 insert
         cur.execute("INSERT INTO user_item VALUES(%s,%s,%s,%s,%s,%s,%s,%s)",
                     (code, util['name'], util['description'], util['rank'], util['price'], util['trade'], 0, id))
     con.commit()
     cur.close()
 
 
-def getPart(part: int):
+def getPart(part: int):  # part를 한글로 변환
     parts = ['', '투구', '갑옷', '장갑', '신발']
     return parts[part]
 
 
-def translateName(name: str):
+def translateName(name: str):  # column 명은 한글로 한글은 column 으로 변환
     column = ['power', 'hp', 'str', 'crit', 'crit_damage', 'damage']
     korean = ['힘', '체력', '중량', '크리티컬 확률', '크리티컬 데미지', '데미지']
     if name in column:
@@ -138,54 +144,41 @@ def translateName(name: str):
         return column[korean.index(name)]
 
 
-def getPartRein(part: int):
+def getPartRein(part: int):  # 방어구 스텟 확인
     parts = ['힘', '체력', '중량', '힘', '체력']
     return parts[part]
 
 
-def getItem(name: str, index: int, id: int, cnt: int):
+def getItem(code: int, id: int, cnt: int):  # cnt 개 만큼 아이템 code에 담기
     cur = con.cursor()
-    items = getJson('./json/makeItem.json')
-    utils = getJson('./json/util.json')
-    item = items['item'][index][name]
-    util = utils[item['code']]
+    isExistItem(id, code)
     cur.execute(
-        "SELECT COUNT(*) FROM user_item WHERE id = %s AND item_id = %s", (id, item['code']))
-    if cur.fetchone()[0]:
-        cur.execute(
-            "UPDATE user_item SET amount = amount + %s WHERE item_id = %s AND id = %s", (cnt, item['code'], id))
-    else:
-        cur.execute("INSERT INTO user_item VALUES(%s,%s,%s,%s,%s,%s,%s,%s)",
-                    (item['code'], name, util['description'], util['rank'], util['price'], util['trade'], cnt, id))
+        "UPDATE user_item SET amount = amount + %s WHERE item_id = %s AND id = %s", (cnt, code, id))
     con.commit()
     cur.close()
 
 
-def getWear(name: str, index: int, id: int):
+def getRandomValue(val_range: str):  # val_range ex) "0 5"를 0~5사이 숫자로 구하기
+    a, b = val_range.split(" ")
+    return random.randint(int(a), int(b))
+
+
+def getWear(item: dict, id: int):  # 방어구 정보 만들기
     cur = con.cursor()
-    items = getJson("./json/makeItem.json")
-    item = items['wear'][index][name]
-    a, b = item['power'].split(" ")
-    power = random.randint(int(a), int(b))
-    a, b = item['hp'].split(" ")
-    hp = random.randint(int(a), int(b))
-    a, b = item['str'].split(" ")
-    str = random.randint(int(a), int(b))
+    power = getRandomValue(item['power'])
+    hp = getRandomValue(item['hp'])
+    str = getRandomValue(item['str'])
     cur.execute(
         "INSERT INTO user_wear(name,upgrade,`rank`,level,power,hp,`str`,collection,part,wear,trade,id,url) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
-        (name, 0, item['rank'], item['level'], power, hp, str, item['collection'], item['part'], 0, item['trade'], id, item['url']))
+        (item['name'], 0, item['rank'], item['level'], power, hp, str, item['collection'], item['part'], 0, item['trade'], id, item['url']))
     con.commit()
     cur.close()
 
 
-def getWeapon(name: str, index: int, id: int):
+def getWeapon(item: dict, id: int):  # 무기 정보 만들기
     cur = con.cursor()
-    items = getJson("./json/makeItem.json")
-    item = items['weapon'][index][name]
-    a, b = item['power'].split(" ")
-    power = random.randint(int(a), int(b))
-    a, b = item['damage'].split(" ")
-    damage = random.randint(int(a), int(b))
+    power = getRandomValue(item['power'])
+    damage = getRandomValue(item['damage'])
     cur.execute(
         "INSERT INTO user_weapon(name,upgrade,`rank`,level,power,damage,wear,trade,id,url) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
         (item['name'], 0, item['rank'], item['level'], power, damage, 0, item['trade'], id, item['url']))
@@ -193,17 +186,16 @@ def getWeapon(name: str, index: int, id: int):
     cur.close()
 
 
-def getTitle(name: str, index: int, id: int):
+def getTitle(item: dict, id: int):  # 칭호 정보 만들기
     cur = con.cursor()
-    items = getJson("./json/makeItem.json")
-    item = items['title'][index][name]
     cur.execute(
         "INSERT INTO user_title(name,`rank`,level,power,hp,`str`,crit,crit_damage,damage,description,wear,trade,id) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
         (item['name'], item['rank'], item['level'], item['power'], item['hp'], item['str'], item['crit'], item['crit_damage'], item['damage'], item['description'], 0, item['trade'], id))
     con.commit()
+    cur.close()
 
 
-def useNotTradeFirst(name: str, amount: int, id: int):
+def useNotTradeFirst(name: str, amount: int, id: int):  # 교환불가능 아이템 먼저 소비
     cur = con.cursor()
     cur.execute(
         "SELECT amount FROM user_item WHERE id = %s AND name = %s ORDER BY trade ASC", (id, name))
@@ -224,7 +216,7 @@ def useNotTradeFirst(name: str, amount: int, id: int):
     cur.close()
 
 
-def block_exp(level: int, exp: int):
+def block_exp(level: int, exp: int):  # 경험치바 렌더러
     guild = client.get_guild(884259665964314655)
     name = ["0_", "1_", "2_", "3_", "4_", "5_", "6_", "7_", "8_", "9_", "10"]
     block = [discord.utils.get(guild.emojis, name=i) for i in name]
@@ -243,7 +235,7 @@ def block_exp(level: int, exp: int):
     return string, level_info[str(level)]
 
 
-def is_levelup(level: int, exp: int, id: int):
+def is_levelup(level: int, exp: int, id: int):  # 레벨업 했을때
     level_info = getJson('./json/level.json')
     num = 0
     while level_info[str(level+num)] <= exp:
@@ -258,15 +250,13 @@ def is_levelup(level: int, exp: int, id: int):
     return num
 
 
-def makeDictionary(keys: list, values: tuple):
+def makeDictionary(keys: list, values: tuple):  # keys : values 딕셔너리 만들기
     if not values or not keys:
         return False
     return {keys[i]: values[i] for i in range(len(keys))}
 
 
-
-
-def getOption(option: str):
+def getOption(option: str):  # 무기 옵션 구하기
     power = hp = str = crit = damage = 0
     if option:
         for i in option.split(" "):
@@ -294,7 +284,7 @@ def authorize(id: int):  # 유저 정보가 있으면 True
     return cur.fetchone() != None
 
 
-def getJson(url: str):
+def getJson(url: str):  # JSON 구하기
     file = open(url, 'r', encoding="utf-8")
     data = json.load(file)
     return data
@@ -315,7 +305,7 @@ def getStatus(id: int):  # 유저 스텟 불러오기
     cur.execute(
         "SELECT name,SUM(hp), SUM(power),SUM(`str`),SUM(crit),SUM(crit_damage),SUM(damage) FROM user_title WHERE id = %s AND wear = 1", id)
     title = makeDictionary(
-        ['name', 'hp', 'power', 'str', 'crit', 'crit_damage', 'damage'], cur.fetchone())
+        ['title', 'hp', 'power', 'str', 'crit', 'crit_damage', 'damage'], cur.fetchone())
     cur.execute(
         "SELECT power,damage/100,`option` FROM user_weapon WHERE id=%s AND wear = 1", id)
     weapon = makeDictionary(['power', 'damage', 'option'], cur.fetchone())
@@ -382,6 +372,7 @@ async def show_collection(interaction: Interaction):
     if not authorize(interaction.user.id):
         return await interaction.response.send_message("`회원가입` 명령어로 먼저 가입을 해주세요.", ephemeral=True)
     cur = con.cursor()
+    # 착용중인 아이템의 컬렉션들의 개수를 출력해 collection_effect의 value보다 크면 값 불러오기.
     cur.execute("""SELECT A.collection,A.value,A.hp,A.power,A.str,A.crit,A.crit_damage/100,A.damage/100 FROM 
                 collection_effect A JOIN 
                 (SELECT collection as col,COUNT(collection) as cnt FROM user_wear
@@ -389,7 +380,7 @@ async def show_collection(interaction: Interaction):
                 B ON B.col = A.collection WHERE B.cnt>=A.value""", interaction.user.id)
     embed = discord.Embed(title="세트효과")
     values = cur.fetchall()
-    for i in values:
+    for i in values:  # 설명 embed 작성
         text = ''
         item = makeDictionary(
             ['collection', 'value', 'hp', 'power', 'str', 'crit', 'crit_damage', 'damage'], i)
@@ -411,11 +402,12 @@ async def reset_stat(interaction: Interaction):
     cur.execute("SELECT amount FROM user_item WHERE id = %s AND item_id = %s",
                 (interaction.user.id, 8))
     amount = cur.fetchone()
-    if not amount:
+    if not amount:  # db에 스크롤이 없을때
         return await interaction.response.send_message("`스텟 초기화 스크롤`이 없습니다.", ephemeral=True)
     else:
-        if not amount[0]:
+        if not amount[0]:  # 스크롤 개수가 0 개 일때
             return await interaction.response.send_message("`스텟 초기화 스크롤`이 없습니다.", ephemeral=True)
+        # 스크롤이 있을때
         cur.execute(
             "UPDATE user_item SET amount = amount - 1 WHERE id = %s AND item_id = %s", (interaction.user.id, 8))
         cur.execute("SELECT level FROM user_info WHERE id = %s",
@@ -440,15 +432,16 @@ async def makeItem(interaction: Interaction, 종류: makeItemEnum):
     cnt = {}
     cnt[interaction.user.id] = 1
 
-    async def setup(interaction: Interaction):
+    async def setup(interaction: Interaction):  # 아이템 select 하는 함수
         embed = discord.Embed(title=f"{종류.name} 제작소")
         view = ui.View(timeout=None)
         options = []
+        # 페이지당 10개씩 만들기
         for index in range(page[interaction.user.id]*10, (page[interaction.user.id]+1)*10):
-            if len(items[category]) <= index:
+            if len(items[category]) <= index:  # 만약 인덱스가 현재 아이템 갯수보다 많으면 break
                 break
             item = items[category][index]
-            for i in item:
+            for i in item:  # 아이템 하나인데 포문임(고쳐야됨)
                 if category == "wear":
                     option = SelectOption(
                         label=f"Lv.{item[i]['level']} {i}", description=f"{item[i]['collection']} 세트", value=index)
@@ -468,7 +461,7 @@ async def makeItem(interaction: Interaction, 종류: makeItemEnum):
             options.append(SelectOption(label="이전페이지", value=-2))
         select = ui.Select(placeholder="아이템을 선택해주세요.", options=options)
 
-        async def select_callback(interaction: Interaction):
+        async def select_callback(interaction: Interaction):  # 아이템을 선택했을때.
             index = int(select.values[0])
             if index == -1:
                 page[interaction.user.id] += 1
@@ -479,12 +472,12 @@ async def makeItem(interaction: Interaction, 종류: makeItemEnum):
                 await interaction.response.edit_message(content="")
                 return await setup(interaction)
 
-            async def makeDetail(interaction: Interaction):
+            async def makeDetail(interaction: Interaction):  # 아이템 제작 정보 함수
                 disabled = False
                 req_items = []
                 req_amounts = []
 
-                for i in items[category][index]:
+                for i in items[category][index]:  # 여기도 고칠필요 있음.
                     item = items[category][index][i]
                     name = i
                     embed = discord.Embed(title=i)
@@ -522,10 +515,11 @@ async def makeItem(interaction: Interaction, 종류: makeItemEnum):
                 view.add_item(makebutton)
                 view.add_item(backbutton)
 
-                async def back_callback(interaction: Interaction):
+                async def back_callback(interaction: Interaction):  # 제작 취소시
                     await interaction.response.edit_message(content="")
                     await setup(interaction)
 
+                # 기타아이템일때 아이템 개수변경
                 async def amount_callback(interaction: Interaction):
                     class amountModal(ui.Modal, title=f"개수변경"):
                         answer = ui.TextInput(
@@ -545,7 +539,7 @@ async def makeItem(interaction: Interaction, 종류: makeItemEnum):
                             await makeDetail(interaction)
                     await interaction.response.send_modal(amountModal())
 
-                async def make_callback(interaction: Interaction):
+                async def make_callback(interaction: Interaction):  # 제작하기 눌렀을때
                     for i in range(len(req_amounts)):
                         if req_items[i] == "골드":
                             cur.execute(
@@ -556,11 +550,11 @@ async def makeItem(interaction: Interaction, 종류: makeItemEnum):
                     if category != "item":
                         if getSuccess(percent, 100):
                             if category == "wear":
-                                getWear(name, index, interaction.user.id)
+                                getWear(item, interaction.user.id)
                             if category == "weapon":
-                                getWeapon(name, index, interaction.user.id)
+                                getWeapon(item, interaction.user.id)
                             if category == "title":
-                                getTitle(name, index, interaction.user.id)
+                                getTitle(item, interaction.user.id)
                             return await interaction.response.edit_message(content="제작 성공!", embed=None, view=None)
                         else:
                             return await interaction.response.edit_message(content="제작 실패...", embed=None, view=None)
@@ -569,13 +563,13 @@ async def makeItem(interaction: Interaction, 종류: makeItemEnum):
                         for i in range(cnt[interaction.user.id]):
                             if getSuccess(percent, 100):
                                 real_cnt += 1
-                        getItem(name, index, interaction.user.id, real_cnt)
+
+                        getItem(item['code'], interaction.user.id, real_cnt)
                         return await interaction.response.edit_message(content=f"{cnt[interaction.user.id]}회 중 {real_cnt}번 성공!", embed=None, view=None)
 
                 makebutton.callback = make_callback
                 backbutton.callback = back_callback
-                if category == "item":
-
+                if category == "item":  # 아이템일때 개수변경 버튼 추가
                     embed.add_field(
                         name=f"제작개수 : {cnt[interaction.user.id]}", value='\u200b', inline=False)
                     amountbutton = ui.Button(label="개수 변경", row=2)
@@ -599,11 +593,11 @@ async def deleteUser(interaction: Interaction):
     if not authorize(interaction.user.id):
         return await interaction.response.send_message("`회원가입` 명령어로 먼저 가입을 해주세요.", ephemeral=True)
 
-    class deleteModal(ui.Modal, title="캐릭터삭제"):
+    class deleteModal(ui.Modal, title="캐릭터삭제"):  # 캐릭터 삭제 묻는 설문지
         answer = ui.TextInput(label="캐릭터를 한번 삭제하면 되돌릴 수 없어요.",
                               placeholder="'캐릭터삭제' 라고 적어주세요.")
 
-        async def on_submit(self, interaction: Interaction):
+        async def on_submit(self, interaction: Interaction):  # 제출했을때
             if self.answer.value == "캐릭터삭제":
                 cur = con.cursor()
                 cur.execute("DELETE FROM user_info WHERE id = %s",
@@ -627,12 +621,12 @@ async def deleteUser(interaction: Interaction):
 
 @tree.command(name="기타아이템넣기", description="개발자전용명령어")
 async def put_util(interaction: Interaction, 코드: int, 개수: int, 유저: discord.Member):
-    if not interaction.user.id == 432066597591449600:
+    if not interaction.user.id == 432066597591449600:  # 제작자인지 확인하기
         return
     cur = con.cursor()
     cur.execute("SELECT nickname FROM user_info WHERE id = %s", 유저.id)
 
-    if 유저.id == 874615001527234560:
+    if 유저.id == 874615001527234560:  # 리뉴얼 선택했을때 모든 유저에게 아이템 지급
         cur.execute("SELECT id FROM user_info")
         users = cur.fetchall()
         for i in users:
@@ -640,6 +634,7 @@ async def put_util(interaction: Interaction, 코드: int, 개수: int, 유저: d
         cur.execute(
             "UPDATE user_item SET amount = amount + %s WHERE item_id = %s",
             (개수, 코드))
+        return await interaction.response.send_message(f"모든 유저에게 {코드} 아이템 {개수} 개를 성공적으로 넣었습니다", ephemeral=True)
     elif not cur.fetchone():
         return
     else:
@@ -648,13 +643,14 @@ async def put_util(interaction: Interaction, 코드: int, 개수: int, 유저: d
                     (개수, 유저.id, 코드))
     con.commit()
     cur.close()
-    return await interaction.response.send_message("성공적으로 넣었습니다", ephemeral=True)
+    return await interaction.response.send_message(f"{유저}에게 {코드} 아이템 {개수} 개를 성공적으로 넣었습니다", ephemeral=True)
 
 
 @tree.command(name="강화", description="아이템강화")
 async def reinforce_weapon(interaction: Interaction, 종류: reinEnum):
     if not authorize(interaction.user.id):
         return await interaction.response.send_message("`회원가입` 명령어로 먼저 가입을 해주세요.", ephemeral=True)
+    # 이미 강화중이면 강화 불가능
     try:
         if weapon_rein_dic[interaction.user.id]:
             return await interaction.response.send_message("강화할 수 없습니다.", ephemeral=True)
@@ -669,9 +665,9 @@ async def reinforce_weapon(interaction: Interaction, 종류: reinEnum):
     reinforce_info = getJson('./json/reinforce.json')
     category = 'weapon' if 종류.value == 0 else 'wear'
 
-    async def setup(interaction: Interaction):
+    async def setup(interaction: Interaction):  # 기본 강화 embed 함수
         disabled = False
-        try:
+        try:  # 강화 처음 들어올때.
             item['upgrade']
         except:
             if 종류.name == "무기":
@@ -687,7 +683,7 @@ async def reinforce_weapon(interaction: Interaction, 종류: reinEnum):
             if not item:
                 weapon_rein_dic[interaction.user.id] = False
                 return await interaction.response.send_message("아이템을 장착하지 않았습니다.", ephemeral=True)
-        if item['upgrade'] == 25:
+        if item['upgrade'] == 25:  # 25강화면 나가게하기
             con.commit()
             weapon_rein_dic[interaction.user.id] = False
             try:
@@ -695,6 +691,7 @@ async def reinforce_weapon(interaction: Interaction, 종류: reinEnum):
             except discord.errors.InteractionResponded:
                 await interaction.edit_original_response(content="25강화를 완료 했습니다.")
             return
+        # embed 설정 및 재료 확인
         embed = discord.Embed(
             title=f"{item['name']}[{item['rank']}] +{item['upgrade']} > +{item['upgrade']+1} 강화")
         embed.set_thumbnail(url=item['url'])
@@ -716,7 +713,7 @@ async def reinforce_weapon(interaction: Interaction, 종류: reinEnum):
         names = []
         amounts = []
         embed.add_field(name='\u200b', value='\u200b')
-        for i in req_item.split(","):
+        for i in req_item.split(","):  # 기타아이템 보유중인지 확인
             util, amount = i.split("/")
             embed.add_field(name=f"강화재료 : {util} {amount}개", value="\u200b")
             cur.execute("SELECT amount FROM user_item WHERE id = %s AND name = %s ORDER BY trade ASC",
@@ -743,27 +740,27 @@ async def reinforce_weapon(interaction: Interaction, 종류: reinEnum):
         back = ui.Button(label="끝내기", style=ButtonStyle.red)
         view.add_item(back)
 
-        async def back_callback(interacation: Interaction):
+        async def back_callback(interacation: Interaction):  # 끝내기 버튼 클릭시
             weapon_rein_dic[interaction.user.id] = False
             await interacation.response.edit_message(content=".", embed=None, view=None)
             await interacation.delete_original_response()
 
-        async def button_callback(interaction: Interaction):
+        async def button_callback(interaction: Interaction):  # 강화하기 버튼 클릭시
             cur = con.cursor()
             for i in range(len(names)):
                 useNotTradeFirst(names[i], amounts[i], interaction.user.id)
             cur.execute("UPDATE user_info SET money = money - %s WHERE id = %s",
                         (req_money, interaction.user.id))
-            if getSuccess(req_percent, 100):
-                if 종류.name == "무기":
+            if getSuccess(req_percent, 100):  # 성공하면
+                if 종류.name == "무기":  # 무기일때
                     cur.execute("UPDATE user_weapon SET upgrade = upgrade + 1 , power = power + %s WHERE id = %s AND wear = 1 ",
                                 (stat, interaction.user.id))
-                else:
+                else:  # 방어구일때
                     real_name = translateName(stat_name)
                     cur.execute(
                         f"UPDATE user_wear SET upgrade = upgrade +1, {real_name} = {real_name} + {stat} WHERE id = {interaction.user.id} AND wear = 1 AND part = {종류.value} ")
                 item['upgrade'] += 1
-                if item["upgrade"] >= 20:
+                if item["upgrade"] >= 20:  # 20강 이상 성공 했을때 해당 채널에 메시지 출력
                     await interaction.channel.send(f"`{interaction.user.display_name}`님이 `{item['name']} +{item['upgrade']}` 강화에 성공했습니다!")
                 await interaction.response.edit_message(content="강화에 성공했습니다!", view=None, embed=None)
             else:
@@ -786,7 +783,7 @@ async def ranking(interaction: Interaction, 종류: rankingEnum):
         return await interaction.response.send_message("`회원가입` 명령어로 먼저 가입을 해주세요.", ephemeral=True)
     cur = con.cursor()
     embed = discord.Embed(title=f'{종류.name} 랭킹')
-    if 종류.value == "level":
+    if 종류.value == "level":  # 레벨기준 랭킹
         cur.execute(
             "SELECT nickname,level,exp FROM user_info ORDER BY level DESC, exp DESC, create_at ASC LIMIT 0,20 ")
         for i in cur.fetchall():
@@ -795,7 +792,7 @@ async def ranking(interaction: Interaction, 종류: rankingEnum):
                 name=f"{i[0]} Lv.{i[1]} ({i[2]}/{require})", value=block, inline=False)
         cur.execute(
             "SELECT DENSE_RANK() OVER (ORDER BY level DESC, exp DESC, create_at ASC) RANKING FROM user_info WHERE id = %s", interaction.user.id)
-    elif 종류.value == "money":
+    elif 종류.value == "money":  # 자산기준 랭킹
         cur.execute(
             "SELECT nickname,money FROM user_info ORDER BY money DESC, create_at ASC LIMIT 0,20")
         for i in cur.fetchall():
@@ -804,7 +801,7 @@ async def ranking(interaction: Interaction, 종류: rankingEnum):
                             value="\u200b", inline=False)
         cur.execute(
             "SELECT DENSE_RANK() OVER (ORDER BY money DESC, create_at ASC) RANKING FROM user_info WHERE id= %s", interaction.user.id)
-    elif 종류.value == "mooroong":
+    elif 종류.value == "mooroong":  # 무릉기준 랭킹
         cur.execute(
             "SELECT nickname,mooroong FROM user_info ORDER BY mooroong DESC, create_at ASC LIMIT,0,20")
         for i in cur.fetchall():
@@ -824,23 +821,23 @@ async def trade(interaction: Interaction, 유저: discord.Member, 종류: makeIt
     cur = con.cursor()
     category = 종류.value
     item_data: dict = getJson('./json/util.json')
-    if category == "item":
+    if category == "item":  # 기타아이템 보유중인지 확인하기
         cur.execute("SELECT trade,amount FROM user_item WHERE id = %s AND item_id = %s",
                     (interaction.user.id, 코드))
         try:
             canTrade, amount = cur.fetchone()
         except:
             return await interaction.response.send_message("아이템이 없습니다", ephemeral=True)
-    else:
-        cur.execute(f"SELECT trade FROM user_{category} WHERE id = {interaction.user.id} AND item_id = {코드} ",
-                    )
+    else:  # 아이템 보유중인지 확인하기
+        cur.execute(
+            f"SELECT trade FROM user_{category} WHERE id = {interaction.user.id} AND item_id = {코드}")
         try:
             canTrade = cur.fetchone()[0]
         except:
             return await interaction.response.send_message("아이템이 없습니다.", ephemeral=True)
-    if canTrade:
-        if category == "item":
-            if amount >= 개수:
+    if canTrade:  # 거래가능시
+        if category == "item":  # 기타아이템 거래
+            if amount >= 개수:  # 개수가 충분하면
                 cur.execute(
                     "UPDATE user_item SET amount = amount - %s WHERE id = %s AND item_id = %s", (개수, interaction.user.id, 코드))
                 isExistItem(interaction.user.id, 코드)
@@ -850,7 +847,7 @@ async def trade(interaction: Interaction, 유저: discord.Member, 종류: makeIt
                 return await interaction.response.send_message(f"`{유저.display_name}`님에게 `{item_data[str(코드)]['name']}`를 `{개수}` 개 전달했습니다.", ephemeral=True)
             else:
                 return await interaction.response.send_message("아이템이 부족합니다.", ephemeral=True)
-        elif category != "item":
+        elif category != "item":  # 아이템 거래
             cur.execute(
                 f"UPDATE user_{category} SET id = {유저.id}, wear=0 WHERE item_id = {코드}")
             con.commit()
@@ -867,14 +864,14 @@ async def status(interaction: Interaction, 스텟: statusEnum, 포인트: int):
     if not authorize(interaction.user.id):
         return await interaction.response.send_message("`회원가입` 명령어로 먼저 가입을 해주세요.", ephemeral=True)
     message = ''
-    if 0 >= 포인트:
+    if 0 >= 포인트:  # 포인트가 0 보다 작으면
         message = '포인트는 `0`보다 큰 숫자여야 합니다.'
     else:
         cur = con.cursor()
         cur.execute("SELECT point FROM user_stat WHERE id = %s",
                     interaction.user.id)
         point = cur.fetchone()[0]
-        if point < 포인트:
+        if point < 포인트:  # 포인트 보유량이 더 적으면
             message = f'포인트는 `현재 보유 포인트: {point}` 보다 작은 숫자여야 합니다.'
         else:
             cur.execute(f"""UPDATE user_stat SET
@@ -890,7 +887,7 @@ async def status(interaction: Interaction, 스텟: statusEnum, 포인트: int):
 
 @tree.command(name="강화초기화", description="운영자를 부르세요.")
 async def reinforceReset(interaction: Interaction, 유저: discord.Member):
-    if interaction.user.id == 432066597591449600:
+    if interaction.user.id == 432066597591449600:  # 강화에 예기치못한 에러가 생겼을때.
         reinforce_weapon[유저.id] = False
     else:
         author = await client.fetch_user(432066597591449600)
@@ -903,6 +900,7 @@ async def register(interaction: Interaction, 닉네임: str):
     if authorize(interaction.user.id):
         await interaction.response.send_message("아이디가 있습니다.", ephemeral=True)
     else:
+        # 정보 생성
         cur.execute("""INSERT INTO user_info(nickname,id,exp,level,money,role,create_at,mooroong) 
                     VALUES(%s,%s,%s,%s,%s,%s,%s,%s)""", (닉네임, interaction.user.id, 0, 1, 100, 0, datetime.datetime.today(), 0))
         cur.execute("INSERT INTO user_stat(id,power,hp,str,crit,crit_damage,point) VALUES(%s,%s,%s,%s,%s,%s,%s)",
@@ -919,17 +917,18 @@ async def info(interaction: Interaction, 유저: discord.Member = None):
     if not authorize(interaction.user.id):
         return await interaction.response.send_message("`회원가입` 명령어로 먼저 가입을 해주세요.", ephemeral=True)
     if 유저:
-        if not authorize(유저.id):
+        if not authorize(유저.id):  # 유저가 없으면
             return await interaction.response.send_message("해당 유저는 회원가입 하지 않았습니다.", ephemeral=True)
 
-    async def setting(interaction: Interaction):
+    async def setting(interaction: Interaction):  # 정보 함수
         cur = con.cursor()
-        id = interaction.user.id if not 유저 else 유저.id
+        id = interaction.user.id if not 유저 else 유저.id  # 유저 값이 없으면 본인 정보 불러오기
         cur.execute(
             "SELECT nickname,exp,level,money,create_at,mooroong FROM user_info WHERE id=%s", id)
         user = makeDictionary(
             ['nickname', 'exp', 'level', 'money', 'create_at', 'moorong'], cur.fetchone())
         stat = getStatus(id)
+        # embed 생성
         view = ui.View(timeout=None)
         button = ui.Button(label="새로고침")
         view.add_item(button)
@@ -974,23 +973,25 @@ async def inventory(interaction: Interaction, 종류: makeItemEnum):
     page[interaction.user.id] = 0
     index = {}
 
-    async def next_callback(interaction: Interaction):
+    async def next_callback(interaction: Interaction):  # 다음으로 버튼 클릭시
         page[interaction.user.id] += 1
         await setup(interaction)
 
-    async def previous_callback(interaction: Interaction):
+    async def previous_callback(interaction: Interaction):  # 이전으로 버튼 클릭시
         page[interaction.user.id] -= 1
         await setup(interaction)
 
-    async def detail_callback(interaction: Interaction):
+    async def detail_callback(interaction: Interaction):  # 선택완료시
         cur = con.cursor()
 
-        if category == "wear":
+        if category == "wear":  # 방어구일때
+            # 해당 방어구 불러오기
             cur.execute(
                 "SELECT item_id,name,upgrade,`rank`,level,power,hp,str,collection,part,wear,trade,url FROM user_wear WHERE id=%s ORDER BY item_id ASC LIMIT %s, 1",
                 (interaction.user.id, page[interaction.user.id]*10+index[interaction.user.id]))
             wear: dict = makeDictionary(['item_id', 'name', 'upgrade', 'rank', 'level', 'power',
                                          'hp', 'str', 'collection', 'part', 'wear', 'trade', 'url'], cur.fetchone())
+            # 현재 착용 중인 방어구 불러오기
             cur.execute(
                 "SELECT power,hp,str FROM user_wear WHERE id=%s AND part=%s AND wear=1", (interaction.user.id, wear['part']))
             gap = {'power': 0, "hp": 0, "str": 0}
@@ -999,9 +1000,11 @@ async def inventory(interaction: Interaction, 종류: makeItemEnum):
                 gap['power'] = check[0]
                 gap['hp'] = check[1]
                 gap['str'] = check[2]
+            # 레벨 불러오기
             cur.execute("SELECT level FROM user_info WHERE id = %s",
                         interaction.user.id)
             level = cur.fetchone()[0]
+            # embed 생성
             embed = discord.Embed(
                 title=f"Lv.{wear['level']} {wear['name']}[{wear['rank']}] +{wear['upgrade']} ({'거래가능' if wear['trade'] else '거래불가'}) {'착용중' if wear['wear'] else ''}")
             embed.add_field(
@@ -1016,12 +1019,14 @@ async def inventory(interaction: Interaction, 종류: makeItemEnum):
             embed.set_thumbnail(url=wear['url'])
             embed.set_footer(text=f"아이템 코드 : {wear['item_id']}")
 
-        if category == "weapon":
+        if category == "weapon":  # 무기일때
+            # 무기 불러오기
             cur.execute(
                 "SELECT item_id,name,upgrade,`rank`,level,power,damage/100,`option`,wear,trade,url FROM user_weapon WHERE id = %s ORDER BY item_id ASC LIMIT %s,1 ",
                 (interaction.user.id, page[interaction.user.id]*10+index[interaction.user.id]))
             weapon = makeDictionary(['item_id', 'name', 'upgrade', 'rank', 'level',
                                     'power', 'damage', 'option', 'wear', 'trade', 'url'], cur.fetchone())
+            # 현재 착용중인 무기 불러오기
             cur.execute(
                 "SELECT power,damage/100 FROM user_weapon WHERE id=%s AND wear=1", (interaction.user.id))
             gap = {'power': 0, "damage": 0}
@@ -1029,9 +1034,11 @@ async def inventory(interaction: Interaction, 종류: makeItemEnum):
             if check:
                 gap['power'] = check[0]
                 gap['damage'] = check[1]
+            # 레벨 불러오기
             cur.execute("SELECT level FROM user_info WHERE id = %s",
                         interaction.user.id)
             level = cur.fetchone()[0]
+            # embed 생성하기
             embed = discord.Embed(
                 title=f"Lv.{weapon['level']} {weapon['name']}[{weapon['rank']}] +{weapon['upgrade']} ({'거래가능' if weapon['trade'] else '거래불가'}) {'착용중' if weapon['wear'] else ''}")
             embed.set_footer(text=f"아이템코드 : {weapon['item_id']}")
@@ -1042,12 +1049,14 @@ async def inventory(interaction: Interaction, 종류: makeItemEnum):
                 name=f"데미지 : {round(weapon['damage'],2)}({'+' if weapon['damage']-gap['damage']>0 else ''}{round(weapon['damage']-gap['damage'],2)})", value='\u200b')
             embed.add_field(name=f"옵션 : {weapon['option']}", value='\u200b')
 
-        if category == "title":
+        if category == "title":  # 칭호일때
+            # 칭호 불러오기
             cur.execute(
                 "SELECT item_id,name,`rank`,level,power,hp,`str`,crit,crit_damage/100,damage/100,wear,trade FROM user_title WHERE id = %s ORDER BY item_id ASC LIMIT %s,1 ",
                 (interaction.user.id, page[interaction.user.id]*10+index[interaction.user.id]))
             title = makeDictionary(['item_id', 'name', 'rank', 'level', 'power', 'hp', 'str',
                                    'crit', 'crit_damage', 'damage', 'wear', 'trade'], cur.fetchone())
+            # 현재 착용중인 칭호 불러오기
             cur.execute(
                 "SELECT power,hp,`str`,crit,crit_damage,damage FROM user_title WHERE id = %s AND wear = 1", interaction.user.id)
             check = cur.fetchone()
@@ -1060,9 +1069,11 @@ async def inventory(interaction: Interaction, 종류: makeItemEnum):
                 gap['crit'] = check[3]
                 gap['crit_damage'] = check[4]
                 gap['damage'] = check[5]
+            # 레벨 불러오기
             cur.execute("SELECT level FROM user_info WHERE id = %s",
                         interaction.user.id)
             level = cur.fetchone()[0]
+            # embed 생성
             embed = discord.Embed(
                 title=f"Lv.{title['level']} {title['name']}[{title['rank']}] ({'거래가능' if title['trade'] else '거래불가'}) {'착용중' if title['wear'] else ''}")
             embed.set_footer(text=f"아이템코드 : {title['item_id']}")
@@ -1074,7 +1085,7 @@ async def inventory(interaction: Interaction, 종류: makeItemEnum):
                     embed.add_field(
                         name=f"{i['name']} : {title[i['value']]}({'+' if title[i['value']]-gap[i['value']]>0 else ''}{title[i['value']]-gap[i['value']]})", value="\u200b")
 
-        async def equip_callback(interaction: Interaction):
+        async def equip_callback(interaction: Interaction):  # 착용하기 버튼 클릭시
             cur = con.cursor()
             if category == "wear":
                 cur.execute("UPDATE user_wear SET wear = 0 WHERE part = %s AND wear = 1 AND id = %s",
@@ -1093,15 +1104,15 @@ async def inventory(interaction: Interaction, 종류: makeItemEnum):
                     "UPDATE user_title SET wear = 1 WHERE item_id = %s", title['item_id'])
             con.commit()
             await detail_callback(interaction)
-
+        # view 생성
         view = ui.View(timeout=None)
+        # 레벨이 낮으면 착용불가 표시
         if category == "weapon":
             equip = ui.Button(label="착용하기", style=ButtonStyle.green,
                               disabled=level < weapon['level'])
         elif category == "wear":
             equip = ui.Button(label="착용하기", style=ButtonStyle.green,
                               disabled=level < wear['level'])
-
         elif category == "title":
             equip = ui.Button(label="착용하기", style=ButtonStyle.green,
                               disabled=level < title['level'])
@@ -1113,7 +1124,7 @@ async def inventory(interaction: Interaction, 종류: makeItemEnum):
         back.callback = setup
         await interaction.response.edit_message(embed=embed, view=view)
 
-    async def checkout_callback(interaction: Interaction):
+    async def checkout_callback(interaction: Interaction):  # 선택하기 버튼 클릭시
         class checkoutModal(ui.Modal, title="아이템을 선택해주세요."):
             answer = ui.TextInput(
                 label="번호", placeholder="현재 페이지 첫번째는 1입니다. 범위는 1~10까지만 가능합니다.", default=1, required=True, max_length=2)
@@ -1133,7 +1144,7 @@ async def inventory(interaction: Interaction, 종류: makeItemEnum):
                         await detail_callback(interaction)
         await interaction.response.send_modal(checkoutModal())
 
-    async def setup(interaction: Interaction):
+    async def setup(interaction: Interaction):  # 유저 아이템 불러오는 함수
         cur = con.cursor()
         embed = discord.Embed(title="인벤토리")
         cur.execute(
@@ -1197,7 +1208,7 @@ async def miningReset(interaction: Interaction):
         cnt[interaction.user.id]
     except KeyError:
         cnt[interaction.user.id] = -1
-    if cnt[interaction.user.id] > 0:
+    if cnt[interaction.user.id] > 0:  # 주간광산, 일간광산 등 특수던전 클리어 못했을 시
         await interaction.response.send_message("초기화 할 수 없습니다.", ephemeral=True)
     else:
         mining_dic[interaction.user.id] = False
@@ -1213,7 +1224,7 @@ async def mooroong(interaction: Interaction):
     stat = getStatus(interaction.user.id)
     stat['power'] = round(stat['power'], 2)
 
-    async def go_callback(interaction: Interaction):  # 탐험진행
+    async def go_callback(interaction: Interaction):  # 도전하기
         enemy = makeDictionary(['name', 'power', 'hp'], ("시련의 광석",
                                floor[interaction.user.id]*2, floor[interaction.user.id]*20))
 
@@ -1280,7 +1291,7 @@ async def mooroong(interaction: Interaction):
         rest.add_field(
             name=f"현재 층 : {floor[interaction.user.id]}", value="\u200b", inline=False)
         view = ui.View(timeout=None)
-        go = ui.Button(label="탐험진행", emoji='⛏', style=ButtonStyle.green)
+        go = ui.Button(label="도전하기", emoji='⛏', style=ButtonStyle.green)
         go.callback = go_callback
         view.add_item(go)
         try:
@@ -1303,21 +1314,18 @@ async def mining(interaction: Interaction, 광산: miningEnum):
             return await interaction.response.send_message("이미 광산에 들어와 있습니다.", ephemeral=True)
     cnt[interaction.user.id] = -1
     cur = con.cursor()
-    if 광산.value <= 0:
+    if 광산.value <= 0:  # 특수 던전 일때
         cur.execute("SELECT amount FROM user_item WHERE id= %s AND item_id=%s",
-                    (interaction.user.id, ticket[광산.value]))
+                    (interaction.user.id, ticket[광산.value]['code']))
         getTicket = cur.fetchone()
         if not getTicket or getTicket[0] == 0:
             mining_dic[interaction.user.id] = False
             return await interaction.response.send_message("입장권이 없습니다.", ephemeral=True)
         else:
             cur.execute("UPDATE user_item SET amount=0 WHERE id = %s  AND item_id=%s",
-                        (interaction.user.id, ticket[광산.value]))
+                        (interaction.user.id, ticket[광산.value]['code']))
             con.commit()
-        if 광산.value > -7:
-            cnt[interaction.user.id] = 3
-        if 광산.value == -8:
-            cnt[interaction.user.id] = 6
+        cnt[interaction.user.id] = ticket[광산.value]['cnt']
     stat = getStatus(interaction.user.id)
     stat['power'] = round(stat['power'], 2)
     adventrue_inventory[interaction.user.id] = makeDictionary(
