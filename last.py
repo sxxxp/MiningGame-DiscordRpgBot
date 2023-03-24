@@ -41,7 +41,7 @@ class MyClient(discord.Client):
             isExistItem(i[0], 2)
             if weekday == 4:
                 isExistItem(i[0], 4)
-        if weekday == 4:
+        if weekday == 4:  # 목요일
             cur.execute(
                 "UPDATE user_item SET amount = 1 WHERE item_id = %s", 4)
         cur.execute("UPDATE user_item SET amount = 1 WHERE item_id = %s", 2)
@@ -208,7 +208,7 @@ def useNotTradeFirst(name: str, amount: int, id: int):  # 교환불가능 아이
             cur.execute(
                 "UPDATE user_item SET amount = 0 WHERE id = %s AND trade = 0 AND name = %s", (id, name))
             cur.execute("UPDATE user_item SET amount = amount - %s WHERE id = %s AND trade = 1 AND name = %s ",
-                        (amount-items[0], id, name))
+                        (amount-items[0][0], id, name))
         else:
             cur.execute(
                 "UPDATE user_item SET amount = amount - %s WHERE id = %s AND trade = 0 AND name = %s", (amount, id, name))
