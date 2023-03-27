@@ -11,9 +11,9 @@ import math
 import asyncio
 import json
 import os
-# from dotenv import load_dotenv
+from dotenv import load_dotenv
 
-# load_dotenv()
+load_dotenv()
 
 GUILD_ID = '934824600498483220'
 LEVEL_PER_STAT = 2
@@ -859,7 +859,7 @@ async def trade(interaction: Interaction, 유저: discord.Member, 종류: makeIt
             return await interaction.response.send_message("아이템이 없습니다", ephemeral=True)
     else:  # 아이템 보유중인지 확인하기
         cur.execute(
-            "SELECT trade FROM %s WHERE id = %s AND item_id = %s", ("user_"+category, interaction.user.id, 코드))
+            f"SELECT trade FROM {'user_'+category} WHERE id = %s AND item_id = %s", (interaction.user.id, 코드))
         try:
             canTrade = cur.fetchone()[0]
         except:
@@ -881,10 +881,10 @@ async def trade(interaction: Interaction, 유저: discord.Member, 종류: makeIt
                 return await interaction.response.send_message("아이템이 부족합니다.", ephemeral=True)
         elif category != "item":  # 아이템 거래
             cur.execute(
-                "UPDATE %s SET id = %s, wear=0 WHERE item_id = %s", ("user_"+category, 유저.id, 코드))
+                f"UPDATE {'user_'+category} SET id = %s, wear=0 WHERE item_id = %s", (유저.id, 코드))
             con.commit()
             cur.execute(
-                "SELECT name FROM %s WHERE item_id = %s", ("user_"+category, 코드))
+                f"SELECT name FROM {'user_'+category} WHERE item_id = %s",  코드)
             cur.close()
             return await interaction.response.send_message(f"`{유저.display_name}`님에게 `{cur.fetchone()[0]}`를 전달했습니다.", ephemeral=True)
     else:  # 거래불가시
@@ -1182,7 +1182,7 @@ async def inventory(interaction: Interaction, 종류: makeItemEnum):
     async def setup(interaction: Interaction):  # 유저 아이템 불러오는 함수
         embed = discord.Embed(title="인벤토리")
         cur.execute(
-            "SELECT COUNT(*) FROM %s WHERE id = %s", ("user_"+category, interaction.user.id))
+            f"SELECT COUNT(*) FROM {'user_'+category} WHERE id = %s", (interaction.user.id))
         count = cur.fetchone()[0]
         if category == "item":
             cur.execute("SELECT name,description,`rank`,price,trade,amount,item_id FROM user_item WHERE id = %s ORDER BY item_id ASC LIMIT %s,10",
