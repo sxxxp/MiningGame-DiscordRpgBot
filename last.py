@@ -364,6 +364,14 @@ def setup():  # 데이터베이스 테이블 생성
                 (item_id INT PRIMARY KEY AUTO_INCREMENT,name TEXT,`rank` TEXT,level INT, hp INT, `str` INT, crit INT,power INT, crit_damage INT, damage INT,description TEXT,wear BOOLEAN,trade BOOLEAN,id TEXT)""")
     cur.close()
 
+@tree.command(name="데이터베이스싱크", description="제작자 전용 명령어")
+async def db_sync(interaction:Interaction):
+    if interaction.user.id == 432066597591449600:
+        global con
+        con.close()
+        con = pymysql.connect(host=os.environ['host'], password=os.environ['password'],
+                    user=os.environ['user'], port=int(os.environ['port']), database=os.environ['database'], charset='utf8')
+
 
 @tree.command(name="커맨드싱크", description="제작자 전용 명령어")
 async def sync(interaction: Interaction):
@@ -835,7 +843,8 @@ async def ranking(interaction: Interaction, 종류: rankingEnum):
 
 @tree.command(name="아이템거래", description="거래")
 async def trade(interaction: Interaction, 유저: discord.Member, 종류: makeItemEnum, 코드: int, 개수: int):
-    if not authorize(interaction.user.id) or not authorize(유저.id):
+    authorized = authorize(interaction.user.id) and authorize(유저.id)
+    if not authorized:
         return await interaction.response.send_message("`회원가입`이 필요하거나 상대방이 가입하지 않았습니다. ", ephemeral=True)
     cur = con.cursor()
     category = 종류.value
@@ -850,7 +859,7 @@ async def trade(interaction: Interaction, 유저: discord.Member, 종류: makeIt
             return await interaction.response.send_message("아이템이 없습니다", ephemeral=True)
     else:  # 아이템 보유중인지 확인하기
         cur.execute(
-            f"SELECT trade FROM user_{category} WHERE id = {interaction.user.id} AND item_id = {코드}")
+            "SELECT trade FROM %s WHERE id = %s AND item_id = %s", ("user_"+category, interaction.user.id, 코드))
         try:
             canTrade = cur.fetchone()[0]
         except:
@@ -872,10 +881,10 @@ async def trade(interaction: Interaction, 유저: discord.Member, 종류: makeIt
                 return await interaction.response.send_message("아이템이 부족합니다.", ephemeral=True)
         elif category != "item":  # 아이템 거래
             cur.execute(
-                f"UPDATE user_{category} SET id = {유저.id}, wear=0 WHERE item_id = {코드}")
+                "UPDATE %s SET id = %s, wear=0 WHERE item_id = %s", ("user_"+category, 유저.id, 코드))
             con.commit()
             cur.execute(
-                f"SELECT name FROM user_{category} WHERE item_id = {코드}")
+                "SELECT name FROM %s WHERE item_id = %s", ("user_"+category, 코드))
             cur.close()
             return await interaction.response.send_message(f"`{유저.display_name}`님에게 `{cur.fetchone()[0]}`를 전달했습니다.", ephemeral=True)
     else:  # 거래불가시
@@ -1046,7 +1055,7 @@ async def inventory(interaction: Interaction, 종류: makeItemEnum):
             embed.set_thumbnail(url=wear['url'])
             embed.set_footer(text=f"아이템 코드 : {wear['item_id']}")
 
-        if category == "weapon":  # 무기일때
+        elif category == "weapon":  # 무기일때
             # 무기 불러오기
             cur.execute(
                 "SELECT item_id,name,upgrade,`rank`,level,power,damage/100,`option`,wear,trade,url FROM user_weapon WHERE id = %s ORDER BY item_id ASC LIMIT %s,1 ",
@@ -1076,7 +1085,7 @@ async def inventory(interaction: Interaction, 종류: makeItemEnum):
                 name=f"데미지 : {round(weapon['damage'],2)}({'+' if weapon['damage']-gap['damage']>0 else ''}{round(weapon['damage']-gap['damage'],2)})", value='\u200b')
             embed.add_field(name=f"옵션 : {weapon['option']}", value='\u200b')
 
-        if category == "title":  # 칭호일때
+        elif category == "title":  # 칭호일때
             # 칭호 불러오기
             cur.execute(
                 "SELECT item_id,name,`rank`,level,power,hp,`str`,crit,crit_damage/100,damage/100,wear,trade FROM user_title WHERE id = %s ORDER BY item_id ASC LIMIT %s,1 ",
@@ -1173,7 +1182,7 @@ async def inventory(interaction: Interaction, 종류: makeItemEnum):
     async def setup(interaction: Interaction):  # 유저 아이템 불러오는 함수
         embed = discord.Embed(title="인벤토리")
         cur.execute(
-            f"SELECT COUNT(*) FROM user_{category} WHERE id = {interaction.user.id}",)
+            "SELECT COUNT(*) FROM %s WHERE id = %s", ("user_"+category, interaction.user.id))
         count = cur.fetchone()[0]
         if category == "item":
             cur.execute("SELECT name,description,`rank`,price,trade,amount,item_id FROM user_item WHERE id = %s ORDER BY item_id ASC LIMIT %s,10",
