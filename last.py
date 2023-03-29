@@ -85,7 +85,15 @@ mining_dic = {}
 cnt = {}
 
 
-class reinEnum(Enum):  # 강화 열거형
+class reinEnum(Enum): 
+    '''
+    강화 part 열거형
+    `무기 : 0`
+    `투구 : 1`
+    `갑옷 : 2`
+    `장갑 : 3`
+    `신발 : 4`
+    '''
     무기 = 0
     투구 = 1
     갑옷 = 2
@@ -93,34 +101,72 @@ class reinEnum(Enum):  # 강화 열거형
     신발 = 4
 
 
-class makeItemEnum(Enum):  # 제작소,인벤토리 열거형
+class makeItemEnum(Enum):
+    '''
+    제작소,인벤토리 열거형
+    
+    `무기 : "weapon"`
+    `방어구 : "wear"`
+    `기타 : "item"`
+    `칭호 : "title"`
+    '''
     무기 = "weapon"
     방어구 = "wear"
     기타 = "item"
     칭호 = "title"
 
 
-class miningEnum(Enum):  # 광산 열거형
+class miningEnum(Enum):
+    '''
+    광산 열거형
+    
+    `기본광산 : 1`
+    `광산 : 2`
+    `요일광산EASY : -datetime.datetime.now(tz=KST).weekday()`
+    `주간광산EASY : -8`
+    '''
     기본광산 = 1
     광산 = 2
     요일광산EASY = -datetime.datetime.now(tz=KST).weekday()
     주간광산EASY = -8
 
 
-class statusEnum(Enum):  # 스텟 열거형
+class statusEnum(Enum):  
+    '''
+    스텟 열거형
+    
+    `힘 : 'power'`
+    `체력 : 'hp'`
+    `중량 : 'str'`
+    `크리티컬데미지 : 'crit_damage'`
+
+    '''
     힘 = 'power'
     체력 = 'hp'
     중량 = 'str'
     크리티컬데미지 = 'crit_damage'
 
 
-class rankingEnum(Enum):  # 랭킹 열거형
+class rankingEnum(Enum):
+    '''
+    랭킹 열거형
+    
+    `레벨 : 'level'`
+    `자산 : 'money'`
+    `무릉 : 'mooroong'`
+    '''
     레벨 = 'level'
     자산 = 'money'
     무릉 = 'mooroong'
 
 
-def isExistItem(id: int, code: int):  # 아이템 있는지 확인
+def isExistItem(id: int, code: int):  
+    '''
+    user_item에 아이템 있는지 확인
+
+    `id: 유저 아이디`
+    `code: 아이템 코드`
+    '''
     cur = con.cursor()
     utils = getJson('./json/util.json')
     util = utils[str(code)]
@@ -133,26 +179,55 @@ def isExistItem(id: int, code: int):  # 아이템 있는지 확인
     cur.close()
 
 
-def getPart(part: int):  # part를 한글로 변환
+def getPart(part: int):  
+    '''
+    part를 한글로 변환
+
+    `parts=["","투구","갑옷","장갑","신발"]`
+    
+    `return parts[part]`
+    '''
     parts = ['', '투구', '갑옷', '장갑', '신발']
     return parts[part]
 
 
-def translateName(name: str):  # column 명은 한글로 한글은 column 으로 변환
+def translateName(name: str): 
+    '''
+    column 명은 한글로 한글은 column 으로 변환
+
+    `return power <=> 힘`
+    '''
     column = ['power', 'hp', 'str', 'crit', 'crit_damage', 'damage']
     korean = ['힘', '체력', '중량', '크리티컬 확률', '크리티컬 데미지', '데미지']
     if name in column:
         return korean[column.index(name)]
-    elif name in korean:
+    else:
         return column[korean.index(name)]
 
 
-def getPartRein(part: int):  # 방어구 스텟 확인
+def getPartRein(part: int):  
+    '''
+    방어구 스텟 확인
+
+    `0: 무기`
+
+    `parts=["힘","체력","중량","힘","체력"]`
+
+    `return parts[part]`
+    '''
     parts = ['힘', '체력', '중량', '힘', '체력']
     return parts[part]
 
 
-def getItem(code: int, id: int, cnt: int):  # cnt 개 만큼 아이템 code에 담기
+def getItem(code: int, id: int, cnt: int): 
+    '''
+    cnt 개 만큼 아이템 code에 담기
+
+    `code: 아이템 코드`
+    `id: 유저 아이디`
+    `cnt: 넣을 아이템 갯수`
+    '''
+
     cur = con.cursor()
     isExistItem(id, code)
     cur.execute(
@@ -161,12 +236,25 @@ def getItem(code: int, id: int, cnt: int):  # cnt 개 만큼 아이템 code에 �
     cur.close()
 
 
-def getRandomValue(val_range: str):  # val_range ex) "0 5"를 0~5사이 숫자로 구하기
+def getRandomValue(val_range: str):  
+    '''
+    `val_range:"0 5"`
+
+    `0~5사이 숫자 랜덤 추출하기`
+
+    `return val_range 사이 숫자` 
+    '''
     a, b = val_range.split(" ")
     return random.randint(int(a), int(b))
 
 
-def getWear(item: dict, id: int):  # 방어구 정보 만들기
+def getWear(item: dict, id: int): 
+    '''
+    방어구 정보 만들기
+
+    `item: 방어구 딕셔너리`
+    `id: 유저 아이디`
+    '''
     cur = con.cursor()
     power = getRandomValue(item['power'])
     hp = getRandomValue(item['hp'])
@@ -178,7 +266,13 @@ def getWear(item: dict, id: int):  # 방어구 정보 만들기
     cur.close()
 
 
-def getWeapon(item: dict, id: int):  # 무기 정보 만들기
+def getWeapon(item: dict, id: int): 
+    '''
+    무기 정보 만들기
+
+    `item: 무기 딕셔너리`
+    `id: 유저 아이디`
+    '''
     cur = con.cursor()
     power = getRandomValue(item['power'])
     damage = getRandomValue(item['damage'])
@@ -189,7 +283,13 @@ def getWeapon(item: dict, id: int):  # 무기 정보 만들기
     cur.close()
 
 
-def getTitle(item: dict, id: int):  # 칭호 정보 만들기
+def getTitle(item: dict, id: int):
+    '''
+    칭호 정보 만들기
+
+    `item: 칭호 딕셔너리`
+    `id: 유저 아이디`
+    '''
     cur = con.cursor()
     cur.execute(
         "INSERT INTO user_title(name,`rank`,level,power,hp,`str`,crit,crit_damage,damage,description,wear,trade,id) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
@@ -198,7 +298,14 @@ def getTitle(item: dict, id: int):  # 칭호 정보 만들기
     cur.close()
 
 
-def useNotTradeFirst(name: str, amount: int, id: int):  # 교환불가능 아이템 먼저 소비
+def useNotTradeFirst(name: str, amount: int, id: int):
+    '''
+    교환불가능 아이템 먼저 소비
+
+    `name: 아이템명`
+    `amount: 소비해야할 아이템 개수`
+    `id: 유저 아이디`
+    '''
     cur = con.cursor()
     cur.execute(
         "SELECT amount FROM user_item WHERE id = %s AND name = %s ORDER BY trade ASC", (id, name))
@@ -219,11 +326,19 @@ def useNotTradeFirst(name: str, amount: int, id: int):  # 교환불가능 아이
     cur.close()
 
 
-def block_exp(level: int, exp: int):  # 경험치바 렌더러
+def block_exp(level: int, exp: int): 
+    '''
+    경험치바 렌더러
+    
+    `level: 유저 레벨`
+    `exp: 유저 경험치`
+
+    `return 경험치바, 필요 경험치`
+    '''
     guild = client.get_guild(884259665964314655)
     name = ["0_", "1_", "2_", "3_", "4_", "5_", "6_", "7_", "8_", "9_", "10"]
     block = [discord.utils.get(guild.emojis, name=i) for i in name]
-    level_info = getJson('./json/level.json')
+    level_info:dict = getJson('./json/level.json')
     percent = round(exp/level_info[str(level)]*100)
     string = ''
     cnt = 0
@@ -238,7 +353,16 @@ def block_exp(level: int, exp: int):  # 경험치바 렌더러
     return string, level_info[str(level)]
 
 
-def is_levelup(level: int, exp: int, id: int):  # 레벨업 했을때
+def is_levelup(level: int, exp: int, id: int): 
+    '''
+    레벨업 했을때
+    
+    `level: 유저 레벨`
+    `exp: 유저 경험치`
+    `id: 유저 아이디`
+
+    `return 레벨업한 숫자`
+    '''
     level_info = getJson('./json/level.json')
     num = 0
     while level_info[str(level+num)] <= exp:
@@ -255,13 +379,27 @@ def is_levelup(level: int, exp: int, id: int):  # 레벨업 했을때
     return num
 
 
-def makeDictionary(keys: list, values: tuple):  # keys : values 딕셔너리 만들기
+def makeDictionary(keys: list, values: tuple): 
+    '''
+    keys : values 딕셔너리 만들기
+
+    `return False : not keys or not values`
+    `return {keys:values} dict`
+    '''
     if not values or not keys:
         return False
     return {keys[i]: values[i] for i in range(len(keys))}
 
 
-def getOption(option: str):  # 무기 옵션 구하기
+def getOption(option: str): 
+    '''
+    무기 옵션 구하기
+
+    `option: user_weapon의 option값`
+    `ex) "a12 p5 c5"`
+
+    `return {'power':int,'hp':int,'str':int,'crit':int,'damage':int}`
+    '''
     power = hp = str = crit = damage = 0
     if option:
         for i in option.split(" "):
@@ -274,8 +412,6 @@ def getOption(option: str):  # 무기 옵션 구하기
                 hp += number
                 str += number
                 power += number
-                crit += number
-                damage += number
             elif i[0] == "c":
                 crit += number
             elif i[0] == "d":
@@ -283,7 +419,14 @@ def getOption(option: str):  # 무기 옵션 구하기
     return {'power': power, 'hp': hp, 'str': str, 'crit': crit, 'damage': damage/100}
 
 
-def authorize(id: int):  # 유저 정보가 있으면 True
+def authorize(id: int): 
+    '''
+    유저 정보가 있으면 True
+
+    `id: 유저 아이디`
+
+    `return True | False`
+    '''
     cur = con.cursor()
     cur.execute("SELECT * FROM user_info WHERE id = %s", id)
     value = cur.fetchone() != None
@@ -291,13 +434,27 @@ def authorize(id: int):  # 유저 정보가 있으면 True
     return value
 
 
-def getJson(url: str):  # JSON 구하기
+def getJson(url: str): 
+    '''
+    JSON 구하기
+    
+    `url: JSON 파일 주소`
+
+    `return 파싱된 JSON 파일`
+    '''
     file = open(url, 'r', encoding="utf-8")
-    data = json.load(file)
+    data:dict = json.load(file)
     return data
 
 
-def getStatus(id: int):  # 유저 스텟 불러오기
+def getStatus(id: int): 
+    '''
+    유저 스텟 불러오기
+    
+    `id: 유저 아이디`
+
+    `return {'power': int, 'hp': int, "str": int,'damage': int, 'crit': int, 'crit_damage': int, 'maxhp': int, 'point': int, 'title': str}`
+    '''
     cur = con.cursor()
     # 갑옷 힘,체력,중량 불러오기
     cur.execute(
@@ -332,11 +489,21 @@ def getStatus(id: int):  # 유저 스텟 불러오기
     return final
 
 
-def getSuccess(num: int, all: int):  # 확률 계산기
+def getSuccess(num: int, all: int): 
+    '''
+    확률 계산기
+    
+    `num>=1~all return True`
+
+    `else return False`
+    '''
     return num >= random.uniform(1, all)
 
 
-def setup():  # 데이터베이스 테이블 생성
+def setup(): 
+    '''
+    데이터베이스 테이블 생성
+    '''
     cur = con.cursor()  # 유저 데이터 테이블 생성
     # user_info 유저 정보(이름,경험치,레벨,돈,역할,생성일자)
     cur.execute("""CREATE TABLE IF NOT EXISTS user_info
