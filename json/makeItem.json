@@ -34,7 +34,7 @@
         "required": {
           "5": 1,
           "6": 5,
-          "money":400
+          "money": 400
         },
         "percent": 100
       }
@@ -54,29 +54,29 @@
         "required": {
           "5": 1,
           "6": 15,
-          "money":600
+          "money": 600
         },
         "percent": 100
       }
     },
     {
       "광부장갑": {
-        "name":"광부장갑",
+        "name": "광부장갑",
         "rank": "F",
         "level": 10,
         "power": "2 4",
         "hp": "1 4",
         "str": "0 2",
-        "collection":"기본 방어구",
+        "collection": "기본 방어구",
         "part": 3,
         "trade": false,
-        "url":"https://cdn.discordapp.com/attachments/988424121878741022/1087933878787903508/miner_glove.png",
+        "url": "https://cdn.discordapp.com/attachments/988424121878741022/1087933878787903508/miner_glove.png",
         "required": {
-          "5":2,
-          "6":15,
-          "money":400
+          "5": 2,
+          "6": 15,
+          "money": 400
         },
-        "percent":100
+        "percent": 100
       }
     }
   ],
@@ -89,7 +89,7 @@
         "required": {
           "1": 3,
           "6": 2,
-          "money":50
+          "money": 50
         }
       }
     }
@@ -98,24 +98,44 @@
     {
       "초보자": {
         "name": "초보자",
-        "description":"기본적인 칭호",
+        "description": "기본적인 칭호",
         "rank": "F",
         "level": 1,
         "power": 5,
-        "hp":10,
-        "str":0,
-        "crit":0,
-        "crit_damage":0,
-        "damage":0,
-        "trade":false,
-        "required":{
+        "hp": 10,
+        "str": 0,
+        "crit": 0,
+        "crit_damage": 0,
+        "damage": 0,
+        "trade": false,
+        "required": {
           "1": 5,
           "5": 2,
           "6": 10,
-          "money":1000
+          "money": 1000
         },
-        "percent":100
-
+        "percent": 100
+      },
+      "날렵한": {
+        "name": "날렵한",
+        "description": "날렵한 자들을 위한 칭호",
+        "rank": "E",
+        "level": 20,
+        "power": 5,
+        "hp": 5,
+        "str": 0,
+        "crit": 5,
+        "crit_damage": 10,
+        "damage": 0,
+        "trade": false,
+        "required": {
+          "money": 3000,
+          "1": 15,
+          "5": 10,
+          "6": 50,
+          "7": 5
+        },
+        "percent": 100
       }
     }
   ]
