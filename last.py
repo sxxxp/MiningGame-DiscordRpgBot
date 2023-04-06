@@ -11,9 +11,9 @@ import math
 import asyncio
 import json
 import os
-# from dotenv import load_dotenv
+from dotenv import load_dotenv
 
-# load_dotenv()
+load_dotenv()
 
 GUILD_ID = '934824600498483220'
 LEVEL_PER_STAT = 2
@@ -1552,7 +1552,21 @@ async def mining(interaction: Interaction, 광산: miningEnum):
         items = ui.Select(placeholder="버릴 아이템을 골라주세요.",
                           options=options, disabled=not len(options))
         view.add_item(items)
+        rest = discord.Embed(title="정비")
+        weight = abs(
+            round(adventrue_inventory[interaction.user.id]['weight'], 2))
+        disabled = round(stat['str'], 2) < weight-0.001
 
+        rest.add_field(
+            name=f"가방(용량:{weight}/{round(stat['str'],2)})", value="\u200b",)
+        rest.add_field(name=광산.name, value='\u200b', inline=False)
+        if disabled:
+            rest.set_footer(text="가방이 너무 무겁습니다!")
+        if cnt[interaction.user.id] >= 0:
+            rest.add_field(
+                name=f"남은 횟수 : {cnt[interaction.user.id]}", value='\u200b')
+            if cnt[interaction.user.id] == 0:
+                rest.set_footer(text="횟수가 없습니다!")
         async def item_remove_callback(interaction: Interaction):
             name, amount, weight = items.values[0].split("-")
             if name == "bug":
@@ -1583,11 +1597,13 @@ async def mining(interaction: Interaction, 광산: miningEnum):
                                         name)
                                 break
                         await interaction.response.edit_message(content=f"{name}을 {self.answer.value}개 버렸습니다.\n중량 -{round(int(self.answer.value)*float(weight),3)}")
-                        await start(interaction)
+                        await remove_callback(interaction)
             await interaction.response.send_modal(amountModal())
         items.callback = item_remove_callback
-        await interaction.response.edit_message(view=view)
-
+        try:
+            await interaction.response.edit_message(view=view)
+        except discord.errors.InteractionResponded:
+            await interaction.edit_original_response(embed=rest, view=view)
     async def go_callback(interaction: Interaction):  # 탐험진행
         cnt[interaction.user.id] -= 1
         cur.execute(
