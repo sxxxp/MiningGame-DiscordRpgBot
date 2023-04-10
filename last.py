@@ -38,13 +38,11 @@ class MyClient(discord.Client):
         cur.execute("SELECT id FROM user_info")
         user = cur.fetchall()
         for i in user:
-            isExistItem(i[0], 2)
+            getItem(2, i[0], 1)
+            cur.execute("SELECT * FROM shop WHERE id=%s", i[0])
+
             if weekday == 4:
-                isExistItem(i[0], 4)
-        if weekday == 4:  # 목요일
-            cur.execute(
-                "UPDATE user_item SET amount = 1 WHERE item_id = %s", 4)
-        cur.execute("UPDATE user_item SET amount = 1 WHERE item_id = %s", 2)
+                getItem(4, i[0], 1)
 
         con.commit()
         cur.close()
@@ -484,7 +482,7 @@ def getStatus(id: int):
     collection = makeDictionary(
         ['hp', 'power', 'str', 'crit', 'crit_damage', 'damage'], cur.fetchone())
     cur.execute(
-        "SELECT name,SUM(hp), SUM(power),SUM(`str`),SUM(crit),SUM(crit_damage),SUM(damage) FROM user_title WHERE id = %s AND wear = 1", id)
+        "SELECT name,SUM(hp), SUM(power),SUM(`str`),SUM(crit),SUM(crit_damage/100),SUM(damage/100) FROM user_title WHERE id = %s AND wear = 1", id)
     title = makeDictionary(
         ['title', 'hp', 'power', 'str', 'crit', 'crit_damage', 'damage'], cur.fetchone())
     cur.execute(
