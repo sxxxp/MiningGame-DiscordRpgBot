@@ -568,6 +568,7 @@ async def db_sync(interaction: Interaction):
         con.close()
         con = pymysql.connect(host=os.environ['host'], password=os.environ['password'],
                               user=os.environ['user'], port=int(os.environ['port']), database=os.environ['database'], charset='utf8')
+        await interaction.response.send_message("성공!", ephemeral=True)
 
 
 @tree.command(name="커맨드싱크", description="제작자 전용 명령어")
@@ -1225,6 +1226,7 @@ async def shop(interaction: Interaction):
                 else f'{buy_item[i]["amount"]}개'
             embed.add_field(name=f"{utils[i]['name']} {format(buy_item[i]['price'],',')}골드",
                             value=f"남은 개수: {left}", inline=False)
+        embed.set_footer(text=f"보유중 : {money}골드")
         view = ui.View(timeout=None)
         buy = ui.Button(label="구매하기", style=ButtonStyle.green)
         sell = ui.Button(label="판매하기", style=ButtonStyle.red)
