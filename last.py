@@ -11,9 +11,9 @@ import math
 import asyncio
 import json
 import os
-from dotenv import load_dotenv
+# from dotenv import load_dotenv
 
-load_dotenv()
+# load_dotenv()
 
 GUILD_ID = '934824600498483220'
 LEVEL_PER_STAT = 2
@@ -665,6 +665,7 @@ async def makeItem(interaction: Interaction, 종류: makeItemEnum):
                     option = SelectOption(
                         label=i, description=f"{'거래가능' if utils[item[i]['code']]['trade'] else '거래불가'}", value=index)
                 elif category == "title":
+                    print(index)
                     option = SelectOption(
                         label=f"Lv.{item[i]['level']} {i}", description=item[i]['description'], value=index)
                 else:
@@ -800,7 +801,7 @@ async def makeItem(interaction: Interaction, 종류: makeItemEnum):
         view.add_item(select)
         try:
             await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
-        except:
+        except discord.errors.InteractionResponded:
             await interaction.edit_original_response(embed=embed, view=view)
 
     await setup(interaction)
@@ -1555,8 +1556,13 @@ async def inventory(interaction: Interaction, 종류: makeItemEnum):
             embed.set_footer(text=f"아이템코드 : {title['item_id']}")
             for i in [{"name": "힘", "value": "power"}, {"name": "체력", "value": "hp"}, {"name": "중량", "value": "str"}, {"name": "크리티컬 확률", "value": "crit"}, {"name": "크리티컬 데미지", "value": "crit_damage"}, {"name": "데미지", "value": "damage"}]:
                 if i['value'] == "crit_damage" or i['value'] == "damage":
+                    value = round(title[i['value']]*100, 0)
                     embed.add_field(
-                        name=f"{i['name']} : {round(title[i['value']],2)}({'+' if title[i['value']]-gap[i['value']]>0 else ''}{round(title[i['value']]-gap[i['value']],2)})", value="\u200b")
+                        name=f"{i['name']} : {f'{value}%'}({'+' if title[i['value']]-gap[i['value']]>0 else ''}{round(value-gap[i['value']],0)}%)", value="\u200b")
+                elif i['value'] == "crit":
+                    embed.add_field(
+                        name=f"{i['name']} : {title[i['value']]}%({'+' if title[i['value']]-gap[i['value']]>0 else ''}{title[i['value']]-gap[i['value']]}%)", value="\u200b")
+
                 else:
                     embed.add_field(
                         name=f"{i['name']} : {title[i['value']]}({'+' if title[i['value']]-gap[i['value']]>0 else ''}{title[i['value']]-gap[i['value']]})", value="\u200b")
