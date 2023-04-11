@@ -40,7 +40,13 @@ class MyClient(discord.Client):
         for i in user:
             getItem(2, i[0], 1)
             cur.execute("SELECT * FROM shop WHERE id=%s", i[0])
-
+            if cur.fetchone():
+                cur.execute(
+                    "UPDATE shop SET item2='5 10 350', item3='6 15 75', item4='7 5 1000', item5='8 1 30000' WHERE id = %s", i[0])
+            else:
+                cur.execute(
+                    "INSERT INTO shop(item2,item3,item4,item5,id) VALUES(%s,%s,%s,%s,%s)",
+                    ("5 10 350", "6 15 75", "7 5 1000", "8 1 30000", i[0]))
             if weekday == 4:
                 getItem(4, i[0], 1)
 
@@ -163,8 +169,8 @@ def isExistItem(id: int, code: int):
     '''
     user_item에 아이템 있는지 확인
     -----------------------------
-    `id: 유저 아이디`
-    `code: 아이템 코드`
+    - id: 유저 아이디
+    - code: 아이템 코드
 
     `return amount`
     '''
@@ -192,7 +198,7 @@ def getPart(part: int):
     '''
     part를 한글로 변환
     -----------------
-    `parts=["","투구","갑옷","장갑","신발"]`
+    - parts=["","투구","갑옷","장갑","신발"] 
 
     `return parts[part]`
     '''
@@ -218,9 +224,8 @@ def getPartRein(part: int):
     '''
     방어구 스텟 확인
     ---------------
-    `0: 무기`
-
-    `parts=["힘","체력","중량","힘","체력"]`
+    - 0: 무기
+    - parts=["힘","체력","중량","힘","체력"]
 
     `return parts[part]`
     '''
@@ -232,9 +237,9 @@ def getItem(code: int, id: int, cnt: int):
     '''
     cnt 개 만큼 아이템 code에 담기
     ----------------------------
-    `code: 아이템 코드`
-    `id: 유저 아이디`
-    `cnt: 넣을 아이템 갯수`
+    - code: 아이템 코드
+    - id: 유저 아이디
+    - cnt: 넣을 아이템 갯수
     '''
 
     cur = con.cursor()
@@ -249,9 +254,9 @@ def getRandomValue(val_range: str):
     '''
     랜덤 숫자 추출기
     ---------------
-    `val_range:"0 5"`
+    - ex) val_range:"0 5"
 
-    `0~5사이 숫자 랜덤 추출하기`
+    - 0~5사이 숫자 랜덤 추출하기
 
     `return val_range 사이 숫자` 
     '''
@@ -263,8 +268,8 @@ def getWear(item: dict, id: int):
     '''
     방어구 정보 만들기
     ----------------
-    `item: 방어구 딕셔너리`
-    `id: 유저 아이디`
+    - item: 방어구 딕셔너리
+    - id: 유저 아이디
     '''
     cur = con.cursor()
     power = getRandomValue(item['power'])
@@ -281,8 +286,8 @@ def getWeapon(item: dict, id: int):
     '''
     무기 정보 만들기
     ---------------
-    `item: 무기 딕셔너리`
-    `id: 유저 아이디`
+    - item: 무기 딕셔너리
+    - id: 유저 아이디
     '''
     cur = con.cursor()
     power = getRandomValue(item['power'])
@@ -298,8 +303,8 @@ def getTitle(item: dict, id: int):
     '''
     칭호 정보 만들기
     ---------------
-    `item: 칭호 딕셔너리`
-    `id: 유저 아이디`
+    - item: 칭호 딕셔너리
+    - id: 유저 아이디
     '''
     cur = con.cursor()
     cur.execute(
@@ -313,9 +318,9 @@ def useNotTradeFirst(name: str, amount: int, id: int):
     '''
     교환불가능 아이템 먼저 소비
     -------------------------
-    `name: 아이템명`
-    `amount: 소비해야할 아이템 개수`
-    `id: 유저 아이디`
+    - name: 아이템명
+    - amount: 소비해야할 아이템 개수
+    - id: 유저 아이디
     '''
     cur = con.cursor()
     cur.execute(
@@ -341,8 +346,8 @@ def block_exp(level: int, exp: int):
     '''
     경험치바 렌더러
     --------------
-    `level: 유저 레벨`
-    `exp: 유저 경험치`
+    - level: 유저 레벨
+    - exp: 유저 경험치
 
     `return 경험치바, 필요 경험치`
     '''
@@ -368,9 +373,9 @@ def is_levelup(level: int, exp: int, id: int):
     '''
     레벨업 했을때
     ------------
-    `level: 유저 레벨`
-    `exp: 유저 경험치`
-    `id: 유저 아이디`
+    - level: 유저 레벨
+    - exp: 유저 경험치
+    - id: 유저 아이디
 
     `return 레벨업한 숫자`
     '''
@@ -406,8 +411,8 @@ def getOption(option: str):
     '''
     무기 옵션 구하기
     ---------------
-    `option: user_weapon의 option값`
-    `ex) "a12 p5 c5"`
+    - option: user_weapon의 option값
+    - ex) "a12 p5 c5"
 
     `return {'power':int,'hp':int,'str':int,'crit':int,'damage':int}`
     '''
@@ -436,7 +441,7 @@ def authorize(id: int):
     ----------------------
     유저 정보가 있으면 True
 
-    `id: 유저 아이디`
+    - id: 유저 아이디
 
     `return True | False`
     '''
@@ -451,9 +456,9 @@ def getJson(url: str):
     '''
     JSON 구하기
     -----------
-    `url: JSON 파일 주소`
+    - url: JSON 파일 주소
 
-    `ex) getJson('./json/util.json')`
+    - ex) getJson('./json/util.json')
 
     `return 파싱된 JSON 파일`
     '''
@@ -466,7 +471,7 @@ def getStatus(id: int):
     '''
     유저 스텟 불러오기
     -----------------
-    `id: 유저 아이디`
+    - id: 유저 아이디
 
     `return {'power': int, 'hp': int, "str": int,'damage': int, 'crit': int, 'crit_damage': int, 'maxhp': int, 'point': int, 'title': str}`
     '''
@@ -509,14 +514,19 @@ def getSuccess(num: int, all: int):
     '''
     확률 계산기
     -----------
-    `num>=1~all return True`
+    - num>=1~all return True
 
-    `else return False`
+    - else return False
     '''
     return num >= random.uniform(1, all)
 
 
 def getMoney(id: int):
+    '''
+    유저 골드 확인하는 함수
+    ----------------------
+    - id: 유저 아이디
+    '''
     if not authorize(id):
         return False
     cur = con.cursor()
@@ -1002,6 +1012,8 @@ async def reinforce_weapon(interaction: Interaction, 종류: reinEnum):
 
 @tree.command(name="상점", description="상점")
 async def shop(interaction: Interaction):
+    if not authorize(interaction.user.id):
+        return await interaction.response.send_message("`회원가입` 명령어로 먼저 가입을 해주세요.", ephemeral=True)
     buy_item = {}
     sell_item = {}
     resd = {}
@@ -1240,6 +1252,12 @@ async def shop(interaction: Interaction):
         except discord.errors.InteractionResponded:
             await interaction.edit_original_response(embed=embed, view=view)
     await setup(interaction)
+
+
+@tree.command(name="아이템교환", description="아이템 교환")
+async def auction(interaction: Interaction, 상대: discord.Member):
+    if not authorize(interaction.user.id) or not authorize(상대.id):
+        return await interaction.response.send_message("본인 혹은 상대방이 회원가입 되어있지 않습니다.", ephemeral=True)
 
 
 @tree.command(name="랭킹", description="랭킹")
