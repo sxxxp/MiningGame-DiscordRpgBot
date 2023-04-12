@@ -627,8 +627,8 @@ async def changeName(interaction: Interaction, 닉네임: str):
     if not authorize(interaction.user.id):
         return await interaction.response.send_message("닉네임을 변경할 아이디가 없어요!", ephemeral=True)
     if isExistItem(interaction.user.id, 9):
-        getItem(9, interaction.user.id, -1)
         if filter_name(닉네임):
+            getItem(9, interaction.user.id, -1)
             cur = con.cursor()
             cur.execute("UPDATE user_info SET nickname= %s WHERE id = %s",
                         (닉네임, interaction.user.id))
