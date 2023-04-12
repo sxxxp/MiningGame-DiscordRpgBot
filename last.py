@@ -1362,34 +1362,36 @@ async def auction(interaction: Interaction, 상대: discord.Member):
             if message1 == True and message2 == True:
                 for i in item[본인.id]:
                     if i not in ['ready', 'page', 'final', 'length']:
-                        for j in item[본인.id][i]:
-                            if i == "money":
-                                cur.execute(
-                                    "UPDATE user_info SET money = money - %s WHERE id = %s", (j, 본인.id))
-                                cur.execute(
-                                    "UPDATE user_info SET money = money + %s WHERE id = %s", (j, 상대.id))
-                            elif i == 'item':
-                                cur.execute(
-                                    "UPDATE user_item SET amount = amount - %s WHERE id = %s AND item_id = %s", (j[1], 본인.id, j[0]))
-                                getItem(j[0], 상대.id, j[1])
-                            else:
-                                cur.execute(
-                                    f"UPDATE user_{i} SET id = %s, wear=0 WHERE id = %s AND item_id = %s", (상대.id, 본인.id, j[0]))
+                        if i == "money":
+                            cur.execute(
+                                "UPDATE user_info SET money = money - %s WHERE id = %s", (item[본인.id][i], 본인.id))
+                            cur.execute(
+                                "UPDATE user_info SET money = money + %s WHERE id = %s", (item[본인.id][i], 상대.id))
+                        else:
+                            for j in item[본인.id][i]:
+                                if i == 'item':
+                                    cur.execute(
+                                        "UPDATE user_item SET amount = amount - %s WHERE id = %s AND item_id = %s", (j[1], 본인.id, j[0]))
+                                    getItem(j[0], 상대.id, j[1])
+                                else:
+                                    cur.execute(
+                                        f"UPDATE user_{i} SET id = %s, wear=0 WHERE id = %s AND item_id = %s", (상대.id, 본인.id, j[0]))
                 for i in item[상대.id]:
                     if i not in ['ready', 'page', 'final', 'length']:
-                        for j in item[상대.id][i]:
-                            if i == "money":
-                                cur.execute(
-                                    "UPDATE user_info SET money = money - %s WHERE id = %s", (j, 상대.id))
-                                cur.execute(
-                                    "UPDATE user_info SET money = money + %s WHERE id = %s", (j, 본인.id))
-                            elif i == 'item':
-                                cur.execute(
-                                    "UPDATE user_item SET amount = amount - %s WHERE id = %s AND item_id = %s", (j[1], 상대.id, j[0]))
-                                getItem(j[0], 본인.id, j[1])
-                            else:
-                                cur.execute(
-                                    f"UPDATE user_{i} SET id = %s, wear=0 WHERE id = %s AND item_id = %s", (본인.id, 상대.id, j[0]))
+                        if i == 'money':
+                            cur.execute(
+                                "UPDATE user_info SET money = money - %s WHERE id = %s", (item[상대.id][i], 상대.id))
+                            cur.execute(
+                                "UPDATE user_info SET money = money + %s WHERE id = %s", (item[상대.id][i], 본인.id))
+                        else:
+                            for j in item[상대.id][i]:
+                                if i == 'item':
+                                    cur.execute(
+                                        "UPDATE user_item SET amount = amount - %s WHERE id = %s AND item_id = %s", (j[1], 상대.id, j[0]))
+                                    getItem(j[0], 본인.id, j[1])
+                                else:
+                                    cur.execute(
+                                        f"UPDATE user_{i} SET id = %s, wear=0 WHERE id = %s AND item_id = %s", (본인.id, 상대.id, j[0]))
                 await interaction.response.edit_message(content="거래 성공!", embed=None, view=None)
                 con.commit()
                 cur.close()
@@ -1658,8 +1660,9 @@ async def auction(interaction: Interaction, 상대: discord.Member):
         category = ui.Select(
             placeholder="거래할 종류의 아이템을 골라주세요.", options=options)
         confirm = ui.Button(label="거래 완료", row=2, style=ButtonStyle.green)
+
         final = ui.Button(
-            label="거래 확정", style=ButtonStyle.blurple, disabled=not item[본인.id]['ready'] and not item[상대.id]['ready'], row=2)
+            label="거래 확정", style=ButtonStyle.blurple, disabled=not (item[본인.id]['ready'] and item[상대.id]['ready']), row=2)
         view.add_item(confirm)
         view.add_item(category)
         view.add_item(final)
