@@ -206,14 +206,31 @@ def getPart(part: int):
     return parts[part]
 
 
+def getName(id: int):
+    '''
+    유저 닉네임 구하는 함수
+    ---------------------
+    - id: 유저 아이디
+
+    `return name`
+    '''
+    if not authorize(id):
+        return
+    cur = con.cursor()
+    cur.execute("SELECT nickname FROM user_info WHERE id = %s", id)
+    return cur.fetchone()[0]
+
+
 def translateName(name: str):
     '''
     column 명은 한글로 한글은 column 으로 변환
     ----------------------------------------
     `return power <=> 힘`
     '''
-    column = ['power', 'hp', 'str', 'crit', 'crit_damage', 'damage']
-    korean = ['힘', '체력', '중량', '크리티컬 확률', '크리티컬 데미지', '데미지']
+    column = ['power', 'hp', 'str', 'crit', 'crit_damage',
+              'damage', 'weapon', 'wear', 'title', 'item', 'money']
+    korean = ['힘', '체력', '중량', '크리티컬 확률', '크리티컬 데미지',
+              '데미지', '무기', '방어구', '칭호', '기타', '골드']
     if name in column:
         return korean[column.index(name)]
     else:
@@ -1258,6 +1275,355 @@ async def shop(interaction: Interaction):
 async def auction(interaction: Interaction, 상대: discord.Member):
     if not authorize(interaction.user.id) or not authorize(상대.id):
         return await interaction.response.send_message("본인 혹은 상대방이 회원가입 되어있지 않습니다.", ephemeral=True)
+    본인 = interaction.user
+    if 본인.id == 상대.id:
+        return await interaction.response.send_message("본인이 본인에게 거래요청을 할 수 없습니다.", ephemeral=True)
+    item = {}
+    item[본인.id] = {'ready': False, 'page': 0, 'final': False, 'length': 0}
+    item[상대.id] = {'ready': False, "page": 0, 'final': False, 'length': 0}
+    global_interaction = interaction
+
+    async def back_callback(interaction: Interaction):
+        await interaction.response.edit_message(content="")
+        await interaction.delete_original_response()
+
+    async def confirm_callback(interaction: Interaction):
+        if interaction.user.id not in [본인.id, 상대.id]:
+            return await interaction.response.send_message("당사자가 아니면 버튼을 클릭할 수 없습니다.", ephemeral=True)
+        item[interaction.user.id]['ready'] = not item[interaction.user.id]['ready']
+        await setup(global_interaction)
+        await interaction.response.send_message("거래 확정 버튼을 다시 클릭하면 취소 할 수 있습니다.", ephemeral=True)
+        await asyncio.sleep(2)
+        await interaction.delete_original_response()
+
+    async def last_callback(interaction: Interaction):
+        if interaction.user.id not in [본인.id, 상대.id]:
+            return
+        item[interaction.user.id]['final'] = not item[interaction.user.id]['final']
+        if item[본인.id]['final'] and item[상대.id]['final']:
+            cur = con.cursor()
+
+            def check_item(id):
+                for i in item[id]:
+                    if i not in ['ready', 'page', 'final', 'length', 'money']:
+                        for j in item[id][i]:
+                            if i == 'item':
+                                cur.execute(
+                                    "SELECT amount FROM user_item WHERE id = %s AND item_id = %s", (id, j[0]))
+                                amount = cur.fetchone()[0]
+                                if j[1] >= amount:
+                                    return f"오래된 정보!! {getName(id)}님 {translateName(i)} {j[0]}에서 에러!"
+                            else:
+                                cur.execute(
+                                    f"SELECT COUNT(*) FROM user_{i} WHERE id = %s AND item_id = %s", (id, j[0]))
+                                if not cur.fetchone()[0]:
+                                    return f"오래된 정보!! {getName(id)}님 {translateName(i)} {j[0]}에서 에러!"
+                return True
+            message1 = check_item(본인.id)
+            message2 = check_item(상대.id)
+            if message1 == True and message2 == True:
+                for i in item[본인.id]:
+                    if i not in ['ready', 'page', 'final', 'length', 'money']:
+                        for j in item[본인.id][i]:
+                            if i == 'item':
+                                cur.execute(
+                                    "UPDATE user_item SET amount = amount - %s WHERE id = %s AND item_id = %s", (j[1], 본인.id, j[0]))
+                                getItem(j[0], 상대.id, j[1])
+                            else:
+                                cur.execute(
+                                    f"UPDATE user_{i} SET id = %s, wear=0 WHERE id = %s AND item_id = %s", (상대.id, 본인.id, j[0]))
+                for i in item[상대.id]:
+                    if i not in ['ready', 'page', 'final', 'length', 'money']:
+                        for j in item[상대.id][i]:
+                            if i == 'item':
+                                cur.execute(
+                                    "UPDATE user_item SET amount = amount - %s WHERE id = %s AND item_id = %s", (j[1], 상대.id, j[0]))
+                                getItem(j[0], 본인.id, j[1])
+                            else:
+                                cur.execute(
+                                    f"UPDATE user_{i} SET id = %s, wear=0 WHERE id = %s AND item_id = %s", (본인.id, 상대.id, j[0]))
+                await interaction.response.edit_message(content="거래 성공!", embed=None, view=None)
+                con.commit()
+                cur.close()
+            else:
+                if message1 == True:
+                    return await interaction.response.edit_message(content=message2, embed=None, view=None)
+                elif message2 == True:
+                    return await interaction.response.edit_message(content=message1, embed=None, view=None)
+                else:
+                    return await interaction.response.edit_message(content=f"{message1}\n{message2}", embed=None, view=None)
+        else:
+            await final_callback(interaction)
+
+    async def final_callback(interaction: Interaction):
+        embed = discord.Embed(title="최종 확인")
+        embed.add_field(
+            name=f"{getName(본인.id)}님 {'최종확인' if item[본인.id]['final'] else ''}", value='\u200b', inline=False)
+        item_maker(id=본인.id, embed=embed)
+        embed.add_field(
+            name=f"{getName(상대.id)}님 {'최종확인' if item[상대.id]['final'] else ''}", value='\u200b', inline=False)
+        item_maker(id=본인.id, embed=embed)
+        view = ui.View()
+        last = ui.Button(label="최종확인", style=ButtonStyle.green)
+        view.add_item(last)
+        last.callback = last_callback
+        await interaction.response.edit_message(embed=embed, view=view)
+
+    async def money_callback(interaction: Interaction):
+        money = int(interaction.data['custom_id'])
+
+        class MoneyModal(ui.Modal, title=f"보유 골드 : {money}"):
+            answer = ui.TextInput(label="골드", placeholder="여기에 골드를 적어주세요.")
+
+            async def on_submit(self, interaction: Interaction):
+                try:
+                    value = int(self.answer.value)
+                except:
+                    pass
+                else:
+                    if money >= value and value > 0:
+                        item[interaction.user.id]['money'] = value
+                        item[interaction.user.id]['length'] += 1
+                    else:
+                        if 'money' in item[interaction.user.id].keys():
+                            del item[interaction.user.id]['money']
+                            item[interaction.user.id]['length'] -= 1
+                    item[본인.id]['ready'] = False
+                    item[상대.id]['ready'] = False
+                    await interaction.response.edit_message(content="")
+                    await interaction.delete_original_response()
+                    await setup(global_interaction)
+        await interaction.response.send_modal(MoneyModal())
+
+    async def item_callback(interaction: Interaction):
+        id, amount = interaction.data['values'][0].split(" ")
+        id = int(id)
+        amount = int(amount)
+        category = interaction.data['custom_id']
+        if id == -1:
+            await interaction.response.edit_message(content="")
+            await interaction.delete_original_response()
+            item[interaction.user.id]['page'] = 0
+            await setup(global_interaction)
+        elif id == -2:
+            await interaction.response.edit_message(content="")
+            await interaction.delete_original_response()
+            item[interaction.user.id]['page'] += 1
+            await category_callback(interaction)
+        elif id == -3:
+            await interaction.response.edit_message(content="")
+            await interaction.delete_original_response()
+            item[interaction.user.id]['page'] -= 1
+            await category_callback(interaction)
+        else:
+            utils = getJson('./json/util.json')
+
+            class AmountModal(ui.Modal, title=f"{utils[str(id)]['name']} {amount}개"):
+                answer = ui.TextInput(
+                    label="아이템 갯수", placeholder="아이템 개수를 적어주세요.")
+
+                async def on_submit(self, interaction: Interaction):
+                    try:
+                        value = int(self.answer.value)
+                    except:
+                        pass
+                    else:
+                        if amount >= value:
+                            interaction.data['values'] = [f'{id} {value}']
+                            interaction.data["custom_id"] = category
+                            await select_callback(interaction)
+
+            await interaction.response.send_modal(AmountModal())
+
+    async def select_callback(interaction: Interaction):
+        id, name = interaction.data['values'][0].split(" ")
+        id = int(id)
+        await interaction.response.edit_message(content="")
+        await interaction.delete_original_response()
+        if id == -1:
+            item[interaction.user.id]['page'] = 0
+            await setup(global_interaction)
+        elif id == -2:
+            item[interaction.user.id]['page'] += 1
+            await category_callback(interaction)
+        elif id == -3:
+
+            item[interaction.user.id]['page'] -= 1
+            await category_callback(interaction)
+        else:
+            category = interaction.data['custom_id']
+            try:
+                item[interaction.user.id][category]
+            except KeyError:
+                item[interaction.user.id][category] = []
+            if category == "item":
+                found = True
+                for i in range(len(item[interaction.user.id][category])):
+                    if id == int(item[interaction.user.id][category][i][0]):
+                        item[interaction.user.id][category][i] = (
+                            id, int(name))
+                        found = False
+                        if int(name) <= 0:
+                            idx = item[interaction.user.id][category].index(
+                                (id, int(name)))
+                            del item[interaction.user.id][category][idx]
+                            item[interaction.user.id]['length'] -= 1
+                        break
+
+                if found:
+                    item[interaction.user.id][category].append((id, int(name)))
+                    item[interaction.user.id]['length'] += 1
+            elif (id, name) in item[interaction.user.id][category]:
+                idx = item[interaction.user.id][category].index((id, name))
+                del item[interaction.user.id][category][idx]
+                item[interaction.user.id]['length'] -= 1
+
+            else:
+                item[interaction.user.id][category].append((id, name))
+                item[interaction.user.id]['length'] += 1
+
+            item[본인.id]['ready'] = False
+            item[상대.id]['ready'] = False
+            item[interaction.user.id]['page'] = 0
+            await setup(global_interaction)
+
+    async def category_callback(interaction: Interaction):
+        if interaction.user.id not in [본인.id, 상대.id]:
+            return await interaction.response.send_message("당사자가 아니면 버튼을 클릭할 수 없습니다.", ephemeral=True)
+        category = interaction.data['values'][0]
+        if category == "money":
+            money = getMoney(interaction.user.id)
+
+            embed = discord.Embed(
+                title=f"보유 골드 : {money}")
+            view = ui.View()
+            button = ui.Button(label="골드 보내기", custom_id=str(
+                money), disabled=item[interaction.user.id]['length'] >= 10)
+            back = ui.Button(label="돌아가기")
+            button.callback = money_callback
+            back.callback = back_callback
+            view.add_item(button)
+            view.add_item(back)
+            await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+        else:
+            cur = con.cursor()
+            options = [SelectOption(label="종료하기", value="-1 dump")]
+            if category == "item":
+                cur.execute("SELECT item_id,name,amount,description FROM user_item WHERE id = %s AND trade = 1 AND amount > 0 ORDER BY item_id LIMIT %s,10 ",
+                            (interaction.user.id, item[interaction.user.id]['page']*10))
+                user_item = cur.fetchall()
+                cur.execute(
+                    "SELECT COUNT(*) FROM user_item WHERE id = %s AND trade = 1 AND amount > 0", interaction.user.id)
+                length = cur.fetchone()[0]
+                for i in user_item:
+                    options.append(SelectOption(
+                        label=f"[{i[0]}] {i[1]} {i[2]}개", value=f"{i[0]} {i[2]}", description=i[3]))
+
+            else:
+                if category == "title":
+                    cur.execute(
+                        "SELECT item_id,name,rank,level,description FROM user_title WHERE id = %s AND trade = 1 ORDER BY item_id LIMIT %s,10",
+                        (interaction.user.id, item[interaction.user.id]['page']*10))
+                    user_title = cur.fetchall()
+                    cur.execute(
+                        "SELECT COUNT(*) FROM user_title WHERE id = %s AND trade = 1", interaction.user.id)
+                    length = cur.fetchone()[0]
+                    for i in user_title:
+                        options.append(SelectOption(
+                            label=f"[{i[0]}] Lv.{i[3]} {i[1]}[{i[2]}]", value=f"{i[0]} {i[1]}", description=i[4]))
+                if category == "wear":
+                    cur.execute(
+                        "SELECT item_id,name,upgrade,rank,level,collection FROM user_wear WHERE id = %s AND trade = 1 ORDER BY item_id LIMIT %s,10",
+                        (interaction.user.id, item[interaction.user.id]['page']*10))
+                    user_wear = cur.fetchall()
+                    cur.execute(
+                        "SELECT COUNT(*) FROM user_wear WHERE id = %s AND trade = 1", interaction.user.id)
+                    length = cur.fetchone()[0]
+                    for i in user_wear:
+                        options.append(SelectOption(
+                            label=f"[i[0]] Lv.{i[4]} {i[1]}[{i[3]}] +{i[2]}", value=f"{i[0]} {i[1]}", description=i[5]))
+                if category == "weapon":
+                    cur.execute(
+                        "SELECT item_id,name,upgrade,rank,level FROM user_weapon WHERE id = %s AND trade = 1 ORDER BY item_id LIMIT %s,10",
+                        (interaction.user.id, item[interaction.user.id]['page']*10))
+                    user_weapon = cur.fetchall()
+                    cur.execute(
+                        "SELECT COUNT(*) FROM user_weapon WHERE id = %s AND trade = 1", interaction.user.id)
+                    length = cur.fetchone()[0]
+                    for i in user_weapon:
+                        options.append(SelectOption(
+                            label=f"[{i[0]}] Lv.{i[4]} {i[1]}[{i[3]}] +{i[2]}", value=f"{i[0]} {i[1]}"))
+            if length > (item[interaction.user.id]['page']+1)*10:
+                options.append(SelectOption(label="다음으로", value="-2 dump"))
+            if item[interaction.user.id]['page'] > 0:
+                options.append(SelectOption(label="이전으로", value="-3 dump"))
+            select = ui.Select(
+                placeholder=f"{translateName(category)}아이템 선택하기", custom_id=category, options=options, disabled=item[interaction.user.id]['length'] >= 10)
+            view = ui.View()
+            view.add_item(select)
+            if category == "item":
+                select.callback = item_callback
+            else:
+                select.callback = select_callback
+            await interaction.response.send_message(view=view, ephemeral=True)
+
+    def item_maker(id, embed):
+        utils = getJson('./json/util.json')
+        for i in item[id]:
+            value = ''
+            if i == "ready" or i == 'page' or i == 'final' or i == 'length':
+                continue
+            elif i == 'money':
+                value = f'{format(item[id][i],",")}골드'
+                embed.add_field(name=f"{translateName(i)}",
+                                value=value, inline=False)
+            else:
+                for j in item[id][i]:
+                    if i == "item":
+                        value = f'{utils[str(j[0])]["name"]} {j[1]}개'
+                    else:
+                        value = f'[{j[0]}] {j[1]}'
+                    embed.add_field(name=f"{translateName(i)}",
+                                    value=value, inline=False)
+        return embed
+
+    async def setup(interaction: Interaction):
+        embed = discord.Embed(title="교환창")
+        embed.add_field(name=f"{getName(본인.id)}님 {item[본인.id]['length']}개 {'[거래완료]' if item[본인.id]['ready'] else ''}",
+                        value="\u200b", inline=False)
+        embed = item_maker(본인.id, embed)
+        embed.add_field(name="\u200b", value="\u200b", inline=False)
+        embed.add_field(name=f"{getName(상대.id)}님 {item[상대.id]['length']}개 {'[거래완료]' if item[상대.id]['ready'] else ''}",
+                        value='\u200b', inline=False)
+        embed = item_maker(상대.id, embed)
+        embed.set_footer(text="한번의 거래에는 각 10개씩 아이템을 올릴 수 있어요.")
+        view = ui.View(timeout=None)
+        options = [SelectOption(label="돈", value="money", description="기본적인 화폐단위."),
+                   SelectOption(label="무기", value="weapon",
+                                description="무기 아이템"),
+                   SelectOption(label="방어구", value="wear",
+                                description="방어구 아이템"),
+                   SelectOption(label="칭호", value='title',
+                                description="칭호 아이템"),
+                   SelectOption(label="기타", value="item", description="기타 아이템")]
+        category = ui.Select(
+            placeholder="거래할 종류의 아이템을 골라주세요.", options=options)
+        confirm = ui.Button(label="거래 완료", row=2, style=ButtonStyle.green)
+        final = ui.Button(
+            label="거래 확정", style=ButtonStyle.blurple, disabled=not item[본인.id]['ready'] and not item[상대.id]['ready'], row=2)
+        view.add_item(confirm)
+        view.add_item(category)
+        view.add_item(final)
+        confirm.callback = confirm_callback
+        final.callback = final_callback
+        category.callback = category_callback
+        try:
+            await interaction.response.edit_message(content="", embed=embed, view=view)
+        except discord.errors.InteractionResponded:
+            await interaction.edit_original_response(content="", embed=embed, view=view)
+
+    await interaction.response.send_message("로딩중...")
+    await setup(interaction)
 
 
 @tree.command(name="랭킹", description="랭킹")
