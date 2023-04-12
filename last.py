@@ -42,11 +42,11 @@ class MyClient(discord.Client):
             cur.execute("SELECT * FROM shop WHERE id=%s", i[0])
             if cur.fetchone():
                 cur.execute(
-                    "UPDATE shop SET item2='5 10 350', item3='6 15 75', item4='7 5 1000', item5='8 1 30000' WHERE id = %s", i[0])
+                    "UPDATE shop SET item2='5 10 350', item3='6 15 75', item4='7 5 1000', item5='8 1 30000',item6='9 1 50000' WHERE id = %s", i[0])
             else:
                 cur.execute(
-                    "INSERT INTO shop(item2,item3,item4,item5,id) VALUES(%s,%s,%s,%s,%s)",
-                    ("5 10 350", "6 15 75", "7 5 1000", "8 1 30000", i[0]))
+                    "INSERT INTO shop(item2,item3,item4,item5,item6,id) VALUES(%s,%s,%s,%s,%s)",
+                    ("5 10 350", "6 15 75", "7 5 1000", "8 1 30000", "9 1 50000", i[0]))
             if weekday == 4:
                 getItem(4, i[0], 1)
 
@@ -1340,9 +1340,12 @@ async def auction(interaction: Interaction, 상대: discord.Member):
 
             def check_item(id):
                 for i in item[id]:
-                    if i not in ['ready', 'page', 'final', 'length', 'money']:
+                    if i not in ['ready', 'page', 'final', 'length']:
                         for j in item[id][i]:
-                            if i == 'item':
+                            if i == "money":
+                                if j[1] >= getMoney(id):
+                                    return f'오래된 정보!! {getName(id)}님 {translateName(i)} {j[0]}에서 에러!'
+                            elif i == 'item':
                                 cur.execute(
                                     "SELECT amount FROM user_item WHERE id = %s AND item_id = %s", (id, j[0]))
                                 amount = cur.fetchone()[0]
@@ -1358,9 +1361,14 @@ async def auction(interaction: Interaction, 상대: discord.Member):
             message2 = check_item(상대.id)
             if message1 == True and message2 == True:
                 for i in item[본인.id]:
-                    if i not in ['ready', 'page', 'final', 'length', 'money']:
+                    if i not in ['ready', 'page', 'final', 'length']:
                         for j in item[본인.id][i]:
-                            if i == 'item':
+                            if i == "money":
+                                cur.execute(
+                                    "UPDATE user_info SET money = money - %s WHERE id = %s", (j, 본인.id))
+                                cur.execute(
+                                    "UPDATE user_info SET money = money + %s WHERE id = %s", (j, 상대.id))
+                            elif i == 'item':
                                 cur.execute(
                                     "UPDATE user_item SET amount = amount - %s WHERE id = %s AND item_id = %s", (j[1], 본인.id, j[0]))
                                 getItem(j[0], 상대.id, j[1])
@@ -1368,9 +1376,14 @@ async def auction(interaction: Interaction, 상대: discord.Member):
                                 cur.execute(
                                     f"UPDATE user_{i} SET id = %s, wear=0 WHERE id = %s AND item_id = %s", (상대.id, 본인.id, j[0]))
                 for i in item[상대.id]:
-                    if i not in ['ready', 'page', 'final', 'length', 'money']:
+                    if i not in ['ready', 'page', 'final', 'length']:
                         for j in item[상대.id][i]:
-                            if i == 'item':
+                            if i == "money":
+                                cur.execute(
+                                    "UPDATE user_info SET money = money - %s WHERE id = %s", (j, 상대.id))
+                                cur.execute(
+                                    "UPDATE user_info SET money = money + %s WHERE id = %s", (j, 본인.id))
+                            elif i == 'item':
                                 cur.execute(
                                     "UPDATE user_item SET amount = amount - %s WHERE id = %s AND item_id = %s", (j[1], 상대.id, j[0]))
                                 getItem(j[0], 본인.id, j[1])
@@ -1397,7 +1410,7 @@ async def auction(interaction: Interaction, 상대: discord.Member):
         item_maker(id=본인.id, embed=embed)
         embed.add_field(
             name=f"{getName(상대.id)}님 {'최종확인' if item[상대.id]['final'] else ''}", value='\u200b', inline=False)
-        item_maker(id=본인.id, embed=embed)
+        item_maker(id=상대.id, embed=embed)
         view = ui.View()
         last = ui.Button(label="최종확인", style=ButtonStyle.green)
         view.add_item(last)
