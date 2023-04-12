@@ -78,6 +78,25 @@
         },
         "percent": 100
       }
+    },{
+      "가죽가방": {
+        "name":"가죽가방",
+        "rank":"F",
+        "levle":15,
+        "power":"0 0",
+        "hp":"2 5",
+        "str":"5 10",
+        "collection":"기본 방어구",
+        "part":5,
+        "trade":false,
+        "url":"",
+        "required": {
+          "6":50,
+          "5":1,
+          "money":500
+        },
+        "percent":100
+      }
     }
   ],
 
