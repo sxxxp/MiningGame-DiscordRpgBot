@@ -1344,18 +1344,19 @@ async def auction(interaction: Interaction, 상대: discord.Member):
                         if i == "money":
                             if item[id][i] >= getMoney(id):
                                 return f'오래된 정보!! {getName(id)}님 {translateName(i)} {item[id][i]}에서 에러!'
-                        for j in item[id][i]:
-                            if i == 'item':
-                                cur.execute(
-                                    "SELECT amount FROM user_item WHERE id = %s AND item_id = %s", (id, j[0]))
-                                amount = cur.fetchone()[0]
-                                if j[1] >= amount:
-                                    return f"오래된 정보!! {getName(id)}님 {translateName(i)} {j[0]}에서 에러!"
-                            else:
-                                cur.execute(
-                                    f"SELECT COUNT(*) FROM user_{i} WHERE id = %s AND item_id = %s", (id, j[0]))
-                                if not cur.fetchone()[0]:
-                                    return f"오래된 정보!! {getName(id)}님 {translateName(i)} {j[0]}에서 에러!"
+                        else:
+                            for j in item[id][i]:
+                                if i == 'item':
+                                    cur.execute(
+                                        "SELECT amount FROM user_item WHERE id = %s AND item_id = %s", (id, j[0]))
+                                    amount = cur.fetchone()[0]
+                                    if j[1] >= amount:
+                                        return f"오래된 정보!! {getName(id)}님 {translateName(i)} {j[0]}에서 에러!"
+                                else:
+                                    cur.execute(
+                                        f"SELECT COUNT(*) FROM user_{i} WHERE id = %s AND item_id = %s", (id, j[0]))
+                                    if not cur.fetchone()[0]:
+                                        return f"오래된 정보!! {getName(id)}님 {translateName(i)} {j[0]}에서 에러!"
                 return True
             message1 = check_item(본인.id)
             message2 = check_item(상대.id)
