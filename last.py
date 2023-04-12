@@ -1729,7 +1729,7 @@ async def trade(interaction: Interaction, 유저: discord.Member, 종류: makeIt
             if amount >= 개수:  # 개수가 충분하면
                 cur.execute(
                     "UPDATE user_item SET amount = amount - %s WHERE id = %s AND item_id = %s", (개수, interaction.user.id, 코드))
-                isExistItem(interaction.user.id, 코드)
+                isExistItem(유저.id, 코드)
                 cur.execute(
                     "UPDATE user_item SET amount = amount + %s WHERE id = %s AND item_id = %s", (개수, 유저.id, 코드))
                 cur.close()
