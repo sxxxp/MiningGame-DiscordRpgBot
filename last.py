@@ -1341,11 +1341,11 @@ async def auction(interaction: Interaction, 상대: discord.Member):
             def check_item(id):
                 for i in item[id]:
                     if i not in ['ready', 'page', 'final', 'length']:
+                        if i == "money":
+                            if item[id][i] >= getMoney(id):
+                                return f'오래된 정보!! {getName(id)}님 {translateName(i)} {item[id][i]}에서 에러!'
                         for j in item[id][i]:
-                            if i == "money":
-                                if j[1] >= getMoney(id):
-                                    return f'오래된 정보!! {getName(id)}님 {translateName(i)} {j[0]}에서 에러!'
-                            elif i == 'item':
+                            if i == 'item':
                                 cur.execute(
                                     "SELECT amount FROM user_item WHERE id = %s AND item_id = %s", (id, j[0]))
                                 amount = cur.fetchone()[0]
