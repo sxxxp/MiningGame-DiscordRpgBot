@@ -1408,7 +1408,8 @@ async def auction(interaction: Interaction, 상대: discord.Member):
         money = int(interaction.data['custom_id'])
 
         class MoneyModal(ui.Modal, title=f"보유 골드 : {money}"):
-            answer = ui.TextInput(label="골드", placeholder="여기에 골드를 적어주세요.")
+            answer = ui.TextInput(
+                label="골드", placeholder="여기에 골드를 적어주세요.", max_length=10)
 
             async def on_submit(self, interaction: Interaction):
                 try:
@@ -1455,7 +1456,7 @@ async def auction(interaction: Interaction, 상대: discord.Member):
 
             class AmountModal(ui.Modal, title=f"{utils[str(id)]['name']} {amount}개"):
                 answer = ui.TextInput(
-                    label="아이템 갯수", placeholder="아이템 개수를 적어주세요.")
+                    label="아이템 갯수", placeholder="아이템 개수를 적어주세요.", max_length=5)
 
                 async def on_submit(self, interaction: Interaction):
                     try:
