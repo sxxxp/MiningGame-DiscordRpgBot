@@ -386,6 +386,22 @@ def block_exp(level: int, exp: int):
     return string, level_info[str(level)]
 
 
+def filter_name(name: str):
+    filtering = ["gm", '운영', '영자', '시발', 'tlqkf', '병신', 'qudtls', '미친',
+                 'alcls']
+    if not name.isalpha():
+        return False
+    if name.lower() in filtering:
+        return False
+    cur = con.cursor()
+    cur.execute("SELECT nickname FROM user_info")
+    names = cur.fetchall()
+    for i in names:
+        if i[0] == name:
+            return False
+    return True
+
+
 def is_levelup(level: int, exp: int, id: int):
     '''
     레벨업 했을때
@@ -604,6 +620,25 @@ async def sync(interaction: Interaction):
             guild=guild, type=discord.AppCommandType.chat_input)
         await tree.sync(guild=guild)
         await tree.sync()
+
+
+@tree.command(name="닉네임변경", description="닉네임 변경권 필요")
+async def changeName(interaction: Interaction, 닉네임: str):
+    if not authorize(interaction.user.id):
+        return await interaction.response.send_message("닉네임을 변경할 아이디가 없어요!", ephemeral=True)
+    if isExistItem(interaction.user.id, 9):
+        getItem(9, interaction.user.id, -1)
+        if filter_name(닉네임):
+            cur = con.cursor()
+            cur.execute("UPDATE user_info SET nickname= %s WHERE id = %s",
+                        (닉네임, interaction.user.id))
+            con.commit()
+            cur.close()
+            await interaction.response.send_message(f"{닉네임}닉네임으로 변경되었어요!", ephemeral=True)
+        else:
+            await interaction.response.send_message(f"{닉네임}은 사용이 불가능합니다!", ephemeral=True)
+    else:
+        await interaction.response.send_message("닉네임 변경권이 없어요!", ephemeral=True)
 
 
 @tree.command(name="세트효과", description="현재 적용받는 세트효과를 보여줍니다.")
@@ -1756,6 +1791,8 @@ async def register(interaction: Interaction, 닉네임: str):
     cur = con.cursor()
     if authorize(interaction.user.id):
         await interaction.response.send_message("아이디가 있습니다.", ephemeral=True)
+    elif not filter_name(닉네임):
+        await interaction.response.send_message(f"{닉네임}닉네임은 사용 불가능합니다.", ephemeral=True)
     else:
         # 정보 생성
         cur.execute("""INSERT INTO user_info(nickname,id,exp,level,money,role,create_at,mooroong) 

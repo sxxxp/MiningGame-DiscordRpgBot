@@ -54,5 +54,12 @@
     "rank": "S",
     "price": 0,
     "trade": false
+  },
+  "9": {
+    "name": "닉네임 변경권",
+    "description":"닉네임이 마음에 안드신다구요? 닉네임을 바꿔보세요!",
+    "rank": "S",
+    "price":0,
+    "trade":false
   }
 }
