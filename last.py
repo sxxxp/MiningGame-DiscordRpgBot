@@ -521,7 +521,7 @@ def getStatus(id: int):
         if value:
             final[key] += value
     final['maxhp'] = final['hp']
-    final['power_stat'] = final['power_stat']
+    final['power_stat'] = stat['power']
     final['power'] *= final['damage']
     cur.close()
     return final
