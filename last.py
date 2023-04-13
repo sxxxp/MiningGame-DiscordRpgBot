@@ -230,9 +230,9 @@ def translateName(name: str):
     `return power <=> 힘`
     '''
     column = ['power', 'hp', 'str', 'crit', 'crit_damage',
-              'damage', 'weapon', 'wear', 'title', 'item', 'money']
+              'damage', 'weapon', 'wear', 'title', 'item', 'money', 'level']
     korean = ['힘', '체력', '중량', '크리티컬 확률', '크리티컬 데미지',
-              '데미지', '무기', '방어구', '칭호', '기타', '골드']
+              '데미지', '무기', '방어구', '칭호', '기타', '골드', '레벨']
     if name in column:
         return korean[column.index(name)]
     else:
