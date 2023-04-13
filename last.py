@@ -45,7 +45,7 @@ class MyClient(discord.Client):
                     "UPDATE shop SET item2='5 10 350', item3='6 15 75', item4='7 5 1000', item5='8 1 30000',item6='9 1 50000' WHERE id = %s", i[0])
             else:
                 cur.execute(
-                    "INSERT INTO shop(item2,item3,item4,item5,item6,id) VALUES(%s,%s,%s,%s,%s)",
+                    "INSERT INTO shop(item2,item3,item4,item5,item6,id) VALUES(%s,%s,%s,%s,%s,%s)",
                     ("5 10 350", "6 15 75", "7 5 1000", "8 1 30000", "9 1 50000", i[0]))
             if weekday == 4:
                 getItem(4, i[0], 1)
