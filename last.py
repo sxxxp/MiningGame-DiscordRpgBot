@@ -2173,10 +2173,12 @@ async def mooroong(interaction: Interaction):
         async def lose(interaction: Interaction):  # 졌을때
             embed = discord.Embed(
                 title=f"기절했습니다. {floor[interaction.user.id]}층 도달.")
-            cur.execute("UPDATE user_info SET mooroong = %s WHERE id = %s",
-                        (floor[interaction.user.id], interaction.user.id))
+            cur.execute("SELECT mooroong FROM user_info WHERE id = %s",interaction.user.id)
+            if floor[interaction.user.id]>cur.fetchone()[0]:
+                cur.execute("UPDATE user_info SET mooroong = %s WHERE id = %s",
+                            (floor[interaction.user.id], interaction.user.id))
+                con.commit()
             cur.close()
-            con.commit()
             await interaction.response.edit_message(content="", embed=embed, view=None)
 
         async def attack_callback(interaction: Interaction):  # 공격했을때
