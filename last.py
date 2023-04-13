@@ -1692,7 +1692,7 @@ async def ranking(interaction: Interaction, 종류: rankingEnum):
             embed.add_field(
                 name=f"{i[0]} Lv.{i[1]} ({i[2]}/{require})", value=block, inline=False)
         cur.execute(
-            "SELECT DENSE_RANK() OVER (ORDER BY level DESC, exp DESC, create_at ASC) RANKING FROM user_info WHERE id = %s", interaction.user.id)
+            "SELECT RANKING FROM (SELECT *,RANK() OVER (ORDER BY `level` DESC, `exp` DESC, create_at ASC) RANKING FROM user_info) AS ranked_user_info WHERE id = %s", interaction.user.id)
     elif 종류.value == "money":  # 자산기준 랭킹
         cur.execute(
             "SELECT nickname,money FROM user_info ORDER BY money DESC, create_at ASC LIMIT 0,20")
@@ -1701,7 +1701,7 @@ async def ranking(interaction: Interaction, 종류: rankingEnum):
             embed.add_field(name=f"{i[0]} {money}💰",
                             value="\u200b", inline=False)
         cur.execute(
-            "SELECT DENSE_RANK() OVER (ORDER BY money DESC, create_at ASC) RANKING FROM user_info WHERE id= %s", interaction.user.id)
+            "SELECT RANKING FROM (SELECT *,RANK() OVER (ORDER BY money DESC, create_at ASC) RANKING FROM user_info) WHERE id= %s", interaction.user.id)
     elif 종류.value == "mooroong":  # 무릉기준 랭킹
         cur.execute(
             "SELECT nickname,mooroong FROM user_info ORDER BY mooroong DESC, create_at ASC LIMIT 0,20")
@@ -1709,7 +1709,7 @@ async def ranking(interaction: Interaction, 종류: rankingEnum):
             embed.add_field(name=f"{i[0]} {i[1]}층",
                             value='\u200b', inline=False)
         cur.execute(
-            "SELECT DENSE_RANK() OVER (ORDER BY mooroong DESC, create_at ASC) RANKING FROM user_info WHERE id= %s", interaction.user.id)
+            "SELECT RANKING FROM (SELECT *,RANK() OVER (ORDER BY mooroong DESC, create_at ASC) RANKING FROM user_info) WHERE id= %s", interaction.user.id)
 
     embed.set_footer(text=f"내 순위 : {cur.fetchone()[0]}위")
     cur.close()
