@@ -726,7 +726,6 @@ async def makeItem(interaction: Interaction, 종류: makeItemEnum):
                     option = SelectOption(
                         label=i, description=f"{'거래가능' if utils[item[i]['code']]['trade'] else '거래불가'}", value=index)
                 elif category == "title":
-                    print(index)
                     option = SelectOption(
                         label=f"Lv.{item[i]['level']} {i}", description=item[i]['description'], value=index)
                 else:
@@ -1705,7 +1704,7 @@ async def ranking(interaction: Interaction, 종류: rankingEnum):
             "SELECT DENSE_RANK() OVER (ORDER BY money DESC, create_at ASC) RANKING FROM user_info WHERE id= %s", interaction.user.id)
     elif 종류.value == "mooroong":  # 무릉기준 랭킹
         cur.execute(
-            "SELECT nickname,mooroong FROM user_info ORDER BY mooroong DESC, create_at ASC LIMIT,0,20")
+            "SELECT nickname,mooroong FROM user_info ORDER BY mooroong DESC, create_at ASC LIMIT 0,20")
         for i in cur.fetchall():
             embed.add_field(name=f"{i[0]} {i[1]}층",
                             value='\u200b', inline=False)
@@ -2210,10 +2209,13 @@ async def mooroong(interaction: Interaction):
                 await interaction.response.edit_message(content="", embed=embed, view=view)
             except discord.errors.InteractionResponded:
                 pass
-
+        if stat['hp'] <= 0:
+            return lose(interaction)
         await try_callback(interaction)
 
     async def start(interaction: Interaction):  # 기본 정비 함수
+        if stat['hp'] <= 0:
+            return go_callback(interaction)
         rest = discord.Embed(title="정비")
         rest.add_field(
             name=f"남은 체력 : {stat['hp']}", value="\u200b", inline=False)
