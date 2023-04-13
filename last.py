@@ -98,12 +98,14 @@ class reinEnum(Enum):
     `갑옷 : 2`
     `장갑 : 3`
     `신발 : 4`
+    `망토 : 5`
     '''
     무기 = 0
     투구 = 1
     갑옷 = 2
     장갑 = 3
     신발 = 4
+    망토 = 5
 
 
 class makeItemEnum(Enum):
@@ -757,9 +759,34 @@ async def makeItem(interaction: Interaction, 종류: makeItemEnum):
                 for i in items[category][index]:  # 여기도 고칠필요 있음.
                     item = items[category][index][i]
                     name = i
-                    embed = discord.Embed(title=i)
+                    embed = discord.Embed(title=f"{i}[{item['rank']}]")
                     if not category == "item" and not category == "title":
                         embed.set_thumbnail(url=item['url'])
+                    if category == "title":
+                        for j in ['level', 'power', 'hp', 'str', 'crit', 'crit_damage', 'damage']:
+                            if item[j] != 0:
+                                embed.add_field(
+                                    name=f"{translateName(j)} {item[j]}", value='\u200b')
+                    elif category == "wear":
+                        for j in ['level', 'power', 'hp', 'str', 'collection']:
+                            if j == 'level':
+                                embed.add_field(
+                                    name=f'{translateName(j)} {item[j]}', value="\u200b")
+                            else:
+                                value1, value2 = item[j].split(" ")
+                                embed.add_field(
+                                    name=f"{translateName(j)} {value1}~{value2}", value="\u200b")
+                    elif category == "weapon":
+                        for j in ['level', 'power', 'damage']:
+                            if j == 'level':
+                                embed.add_field(
+                                    name=f'{translateName(j)} {item[j]}', value="\u200b")
+                            else:
+                                value1, value2 = item[j].split(" ")
+                                embed.add_field(
+                                    name=f"{translateName(j)} {value1}~{value2}", value="\u200b")
+                    embed.add_field(
+                        name="\u200b", value='\u200b', inline=False)
                     for j in item['required']:
                         if j == "money":
                             req_items.append("골드")
@@ -2173,8 +2200,9 @@ async def mooroong(interaction: Interaction):
         async def lose(interaction: Interaction):  # 졌을때
             embed = discord.Embed(
                 title=f"기절했습니다. {floor[interaction.user.id]}층 도달.")
-            cur.execute("SELECT mooroong FROM user_info WHERE id = %s",interaction.user.id)
-            if floor[interaction.user.id]>cur.fetchone()[0]:
+            cur.execute(
+                "SELECT mooroong FROM user_info WHERE id = %s", interaction.user.id)
+            if floor[interaction.user.id] > cur.fetchone()[0]:
                 cur.execute("UPDATE user_info SET mooroong = %s WHERE id = %s",
                             (floor[interaction.user.id], interaction.user.id))
                 con.commit()
