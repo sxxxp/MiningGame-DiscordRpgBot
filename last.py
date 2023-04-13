@@ -772,6 +772,9 @@ async def makeItem(interaction: Interaction, 종류: makeItemEnum):
                             if j == 'level':
                                 embed.add_field(
                                     name=f'{translateName(j)} {item[j]}', value="\u200b")
+                            elif j == "collection":
+                                embed.add_field(
+                                    name=f"{translateName(j)} {item[j]}", value='\u200b')
                             else:
                                 value1, value2 = item[j].split(" ")
                                 embed.add_field(
