@@ -71,7 +71,7 @@ class MyClient(discord.Client):
         setup()
         self.reward.start()
         self.reconnect_db.start()
-        print(datetime.datetime.now(tz=KST).weekday())
+        print(miningEnum.요일광산EASY.value)
         print(f"{self.user} 에 로그인하였습니다!")
         await self.change_message()
 
@@ -2297,7 +2297,6 @@ async def mining(interaction: Interaction, 광산: miningEnum):
     cnt[interaction.user.id] = -1
     cur = con.cursor()
     if 광산.value <= 0:  # 특수 던전 일때
-        print(miningEnum)
         cur.execute("SELECT amount FROM user_item WHERE id= %s AND item_id=%s",
                     (interaction.user.id, ticket[광산.value]['code']))
         getTicket = cur.fetchone()
@@ -2305,7 +2304,7 @@ async def mining(interaction: Interaction, 광산: miningEnum):
             mining_dic[interaction.user.id] = False
             return await interaction.response.send_message("입장권이 없습니다.", ephemeral=True)
         else:
-            setItem(ticket[광산.name]['code'], interaction.user.id, 0)
+            setItem(ticket[광산.value]['code'], interaction.user.id, 0)
         cnt[interaction.user.id] = ticket[광산.value]['cnt']
     stat = getStatus(interaction.user.id)
     stat['power'] = round(stat['power'], 2)
