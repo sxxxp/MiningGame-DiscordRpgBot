@@ -38,17 +38,17 @@ class MyClient(discord.Client):
         cur.execute("SELECT id FROM user_info")
         user = cur.fetchall()
         for i in user:
-            getItem(2, i[0], 1)
+            setItem(2, i[0], 1)
             cur.execute("SELECT * FROM shop WHERE id=%s", i[0])
             if cur.fetchone():
                 cur.execute(
-                    "UPDATE shop SET item2='5 10 350', item3='6 15 75', item4='7 5 1000', item5='8 1 30000',item6='9 1 50000' WHERE id = %s", i[0])
+                    "UPDATE shop SET item1='3 -1 250',item2='5 10 350', item3='6 15 75', item4='7 5 1000', item5='8 1 30000',item6='9 1 50000' WHERE id = %s", i[0])
             else:
                 cur.execute(
-                    "INSERT INTO shop(item2,item3,item4,item5,item6,id) VALUES(%s,%s,%s,%s,%s,%s)",
-                    ("5 10 350", "6 15 75", "7 5 1000", "8 1 30000", "9 1 50000", i[0]))
+                    "INSERT INTO shop(item1,item2,item3,item4,item5,item6,id) VALUES(%s,%s,%s,%s,%s,%s,%s)",
+                    ('3 -1 250', "5 10 350", "6 15 75", "7 5 1000", "8 1 30000", "9 1 50000", i[0]))
             if weekday == 4:
-                getItem(4, i[0], 1)
+                setItem(4, i[0], 1)
 
         con.commit()
         cur.close()
@@ -250,6 +250,22 @@ def getPartRein(part: int):
     '''
     parts = ['힘', '체력', '중량', '힘', '체력', '중량']
     return parts[part]
+
+
+def setItem(code: int, id: int, cnt: int):
+    '''
+    아이템 code를 cnt값으로 바꾸기
+    ----------------------------
+    - code: 아이템 코드
+    - id: 유저 아이디
+    - cnt: 넣을 아이템 갯수
+    '''
+    cur = con.cursor()
+    isExistItem(id, code)
+    cur.execute(
+        "UPDATE user_item SET amount = %s WHERE item_id = %s AND id = %s", (cnt, code, id))
+    con.commit()
+    cur.close()
 
 
 def getItem(code: int, id: int, cnt: int):
