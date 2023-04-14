@@ -34,6 +34,7 @@ class MyClient(discord.Client):
     @tasks.loop(time=datetime.time(hour=0, minute=0, second=0, tzinfo=KST))
     async def reward(self):
         weekday = datetime.datetime.now(tz=KST).weekday()
+        print(weekday)
         cur = con.cursor()
         cur.execute("SELECT id FROM user_info")
         user = cur.fetchall()
@@ -70,10 +71,7 @@ class MyClient(discord.Client):
         setup()
         self.reward.start()
         self.reconnect_db.start()
-        # guild = discord.Object(id=GUILD_ID)
-        # tree.clear_commands(
-        #     guild=guild, type=discord.AppCommandType.chat_input)
-        # await tree.sync(guild=guild)
+        print(weekday=datetime.datetime.now(tz=KST).weekday())
         print(f"{self.user} 에 로그인하였습니다!")
         await self.change_message()
 
