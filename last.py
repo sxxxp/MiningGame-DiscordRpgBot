@@ -71,7 +71,7 @@ class MyClient(discord.Client):
         setup()
         self.reward.start()
         self.reconnect_db.start()
-        print(weekday=datetime.datetime.now(tz=KST).weekday())
+        print(datetime.datetime.now(tz=KST).weekday())
         print(f"{self.user} 에 로그인하였습니다!")
         await self.change_message()
 
