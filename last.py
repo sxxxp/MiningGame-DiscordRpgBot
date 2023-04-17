@@ -17,6 +17,7 @@ import os
 
 GUILD_ID = '934824600498483220'
 LEVEL_PER_STAT = 2
+REBIRTH_PER_STAT = 40
 KST = datetime.timezone(datetime.timedelta(hours=9))
 ticket = {
     -0: {'code': 2, 'cnt': 3},
@@ -640,7 +641,7 @@ async def rebirth(interaction: Interaction):
         cur.execute(
             "UPDATE user_title SET wear=0 WHERE wear =1 AND id = %s", interaction.user.id)
         cur.execute("UPDATE user_stat SET power=1,hp=5,str=5,crit=5,crit_damage=50,point = %s WHERE id = %s", ((
-            rebirth+1)*40+2, interaction.user.id))
+            rebirth+1)*REBIRTH_PER_STAT+LEVEL_PER_STAT, interaction.user.id))
         con.commit()
         await interaction.response.send_message(f"{rebirth+1}차 환생에 성공했습니다.", ephemeral=True)
     else:
