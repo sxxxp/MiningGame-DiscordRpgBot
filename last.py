@@ -640,7 +640,7 @@ async def rebirth(interaction: Interaction):
         cur.execute(
             "UPDATE user_title SET wear=0 WHERE wear =1 AND id = %s", interaction.user.id)
         cur.execute("UPDATE user_stat SET power=1,hp=5,str=5,crit=5,crit_damage=50,point = %s WHERE id = %s", ((
-            rebirth+1)*30+2, interaction.user.id))
+            rebirth+1)*40+2, interaction.user.id))
         con.commit()
         await interaction.response.send_message(f"{rebirth+1}차 환생에 성공했습니다.", ephemeral=True)
     else:
