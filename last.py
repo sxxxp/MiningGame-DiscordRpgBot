@@ -34,7 +34,7 @@ class MyClient(discord.Client):
     @tasks.loop(time=datetime.time(hour=0, minute=0, second=0, tzinfo=KST))
     async def reward(self):
         tree.clear_commands()
-        tree.sync()
+        await tree.sync()
         weekday = datetime.datetime.now(tz=KST).weekday()
         print(weekday)
         cur = con.cursor()
@@ -73,6 +73,7 @@ class MyClient(discord.Client):
         setup()
         self.reward.start()
         self.reconnect_db.start()
+        await tree.sync()
         print(miningEnum.요일광산EASY.value)
         print(f"{self.user} 에 로그인하였습니다!")
         await self.change_message()
