@@ -404,7 +404,7 @@ def block_exp(rebirth: int, level: int, exp: int):
     for _ in range(10-cnt):
         string += str(block[0])
         cnt += 1
-    return string, level_info[str(level)]
+    return string, level_info[str(rebirth)][str(level)]
 
 
 def filter_name(name: str):
