@@ -129,12 +129,13 @@ class miningEnum(Enum):
     ----------
     `기본광산 : 1`
     `깊은광산 : 2`
+    `반짝이는광산 : 3`
     `요일광산EASY : -datetime.datetime.now(tz=KST).weekday()`
     `주간광산EASY : -8`
     '''
     기본광산 = 1
     깊은광산 = 2
-    # 무서운광산 = 3
+    반짝이는광산 = 3
     요일광산EASY = -datetime.datetime.now(tz=KST).weekday()
     주간광산EASY = -8
 

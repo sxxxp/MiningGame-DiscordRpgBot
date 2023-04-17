@@ -57,9 +57,16 @@
   },
   "9": {
     "name": "닉네임 변경권",
-    "description":"닉네임이 마음에 안드신다구요? 닉네임을 바꿔보세요!",
+    "description": "닉네임이 마음에 안드신다구요? 닉네임을 바꿔보세요!",
     "rank": "S",
-    "price":0,
-    "trade":false
+    "price": 0,
+    "trade": false
+  },
+  "10": {
+    "name": "반짝이는 돌",
+    "description": "무지개색 총공격이다!",
+    "rank": "E",
+    "price": 400,
+    "trade": true
   }
 }

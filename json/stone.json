@@ -52,5 +52,35 @@
     "rank": "F",
     "weight": 0.35,
     "price": 150
+  },
+  "10": {
+    "name": "사파이어",
+    "rank": "E",
+    "weight": 0.7,
+    "price": 450
+  },
+  "11": {
+    "name": "자수정",
+    "rank": "E",
+    "weight": 0.8,
+    "price": 650
+  },
+  "12": {
+    "name": "납 원석",
+    "rank": "E",
+    "weight": 0.5,
+    "price": 400
+  },
+  "13": {
+    "name": "무지갯빛 돌",
+    "rank":"E",
+    "weight":0.5,
+    "price": 800
+  },
+  "14":{
+    "name":"오렌지빛 에메랄드",
+    "rank":"E",
+    "weight":2,
+    "price":6666
   }
 }
