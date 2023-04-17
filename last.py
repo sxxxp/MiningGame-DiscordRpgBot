@@ -11,9 +11,9 @@ import math
 import asyncio
 import json
 import os
-# from dotenv import load_dotenv
+from dotenv import load_dotenv
 
-# load_dotenv()
+load_dotenv()
 
 GUILD_ID = '934824600498483220'
 LEVEL_PER_STAT = 2
@@ -33,6 +33,8 @@ class MyClient(discord.Client):
 
     @tasks.loop(time=datetime.time(hour=0, minute=0, second=0, tzinfo=KST))
     async def reward(self):
+        tree.clear_commands()
+        tree.sync()
         weekday = datetime.datetime.now(tz=KST).weekday()
         print(weekday)
         cur = con.cursor()
@@ -126,12 +128,13 @@ class miningEnum(Enum):
     광산 열거형
     ----------
     `기본광산 : 1`
-    `광산 : 2`
+    `깊은광산 : 2`
     `요일광산EASY : -datetime.datetime.now(tz=KST).weekday()`
     `주간광산EASY : -8`
     '''
     기본광산 = 1
-    광산 = 2
+    깊은광산 = 2
+    # 무서운광산 = 3
     요일광산EASY = -datetime.datetime.now(tz=KST).weekday()
     주간광산EASY = -8
 
