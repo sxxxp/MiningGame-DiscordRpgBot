@@ -634,7 +634,10 @@ async def db_sync(interaction: Interaction):
 @tree.command(name="커맨드싱크", description="제작자 전용 명령어")
 async def sync(interaction: Interaction):
     if interaction.user.id == 432066597591449600:
-        guild = discord.Object(id=interaction.guild.id)
+        if not interaction.guild:
+            guild = None
+        else:
+            guild = discord.Object(id=interaction.guild.id)
         tree.clear_commands(
             guild=guild, type=discord.AppCommandType.chat_input)
         await tree.sync(guild=guild)
@@ -1064,7 +1067,7 @@ async def reinforce_weapon(interaction: Interaction, 종류: reinEnum):
                 disabled = True
         stat_name = getPartRein(종류.value)
         embed.set_footer(
-            text=f"강화 성공시 {stat_name} + {stat}")
+            text=f"강화 성공시 {stat_name} + {stat*2 if stat_name == '체력' else stat }")
         view = ui.View(timeout=None)
         button = ui.Button(label="강화하기", disabled=disabled,
                            style=ButtonStyle.green)
@@ -1093,7 +1096,7 @@ async def reinforce_weapon(interaction: Interaction, 종류: reinEnum):
                 else:  # 방어구일때
                     real_name = translateName(stat_name)
                     cur.execute(
-                        f"UPDATE user_wear SET upgrade = upgrade +1, {real_name} = {real_name} + {stat} WHERE id = {interaction.user.id} AND wear = 1 AND part = {종류.value} ")
+                        f"UPDATE user_wear SET upgrade = upgrade +1, {real_name} = {real_name} + {stat*2 if real_name == 'hp' else stat} WHERE id = {interaction.user.id} AND wear = 1 AND part = {종류.value} ")
                 item['upgrade'] += 1
                 if item["upgrade"] >= 20:  # 20강 이상 성공 했을때 해당 채널에 메시지 출력
                     await interaction.channel.send(f"`{interaction.user.display_name}`님이 `{item['name']} +{item['upgrade']}` 강화에 성공했습니다!")
