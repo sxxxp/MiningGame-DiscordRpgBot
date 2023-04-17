@@ -596,7 +596,7 @@ def setup():
     cur = con.cursor()  # 유저 데이터 테이블 생성
     # user_info 유저 정보(이름,경험치,레벨,돈,역할,생성일자)
     cur.execute("""CREATE TABLE IF NOT EXISTS user_info
-                (nickname TEXT,id TEXT,exp INT,level INT,money INT,role INT,create_at DATE)""")
+                (nickname TEXT,id TEXT,exp INT,level INT,rebirth INT,money INT,role INT,create_at DATE)""")
     # user_stat 유저 스텟(아이디,힘,체력,무게,치명타,치명타데미지,포인트)
     cur.execute("""CREATE TABLE IF NOT EXISTS user_stat 
                 (id TEXT,power INT,hp INT,str INT,crit INT,crit_damage INT,point INT)""")
@@ -621,6 +621,20 @@ def setup():
     cur.execute("""CREATE TABLE IF NOT EXISTS shop
                 (item1 TEXT,item2 TEXT,item3 TEXT,item4 TEXT, item5 TEXT,item6 TEXT, id TEXT)""")
     cur.close()
+
+
+@tree.command(name="환생", description="100레벨 달성시")
+async def rebirth(interaction: Interaction):
+    cur = con.cursor()
+    cur.execute("SELECT rebirth FROM user_info WHERE id = %s",
+                interaction.user.id)
+    rebirth = cur.fetchone()
+    cur.execute(
+        "UPDATE user_info SET rebirth= rebirth + 1 , level=1,exp=0 WHERE id = %s", interaction.user.id)
+    cur.execute("UPDATE user_stat SET power=1,hp=5,str=5,crit=5,crit_damage=50,point = %s WHERE id = %s", ((
+        rebirth+1)*30+2, interaction.user.id))
+    con.commit()
+    await interaction.response.send_message(f"{rebirth+1}차 환생에 성공했습니다.", ephemeral=True)
 
 
 @tree.command(name="데이터베이스싱크", description="제작자 전용 명령어")
@@ -946,6 +960,8 @@ async def deleteUser(interaction: Interaction):
                 cur.execute("DELETE FROM user_item WHERE id = %s",
                             interaction.user.id)
                 cur.execute("DELETE FROM user_title WHERE id = %s",
+                            interaction.user.id)
+                cur.execute("DELETE FROM shop WHERE id = %s",
                             interaction.user.id)
                 cur.close()
                 con.commit()
@@ -1742,13 +1758,13 @@ async def ranking(interaction: Interaction, 종류: rankingEnum):
     embed = discord.Embed(title=f'{종류.name} 랭킹')
     if 종류.value == "level":  # 레벨기준 랭킹
         cur.execute(
-            "SELECT nickname,level,exp FROM user_info ORDER BY level DESC, exp DESC, create_at ASC LIMIT 0,20 ")
+            "SELECT nickname,level,exp,rebirth FROM user_info ORDER BY rebirth DESC, level DESC, exp DESC, create_at ASC LIMIT 0,20 ")
         for i in cur.fetchall():
             block, require = block_exp(i[1], i[2])
             embed.add_field(
-                name=f"{i[0]} Lv.{i[1]} ({i[2]}/{require})", value=block, inline=False)
+                name=f"{i[0]} {i[3]}차환생 Lv.{i[1]} ({i[2]}/{require})", value=block, inline=False)
         cur.execute(
-            "SELECT RANKING FROM (SELECT *,RANK() OVER (ORDER BY `level` DESC, `exp` DESC, create_at ASC) RANKING FROM user_info) AS ranked_user_info WHERE id = %s", interaction.user.id)
+            "SELECT RANKING FROM (SELECT *,RANK() OVER (rebirth DESC, ORDER BY `level` DESC, `exp` DESC, create_at ASC) RANKING FROM user_info) AS ranked_user_info WHERE id = %s", interaction.user.id)
     elif 종류.value == "money":  # 자산기준 랭킹
         cur.execute(
             "SELECT nickname,money FROM user_info ORDER BY money DESC, create_at ASC LIMIT 0,20")
@@ -1868,8 +1884,8 @@ async def register(interaction: Interaction, 닉네임: str):
         await interaction.response.send_message(f"{닉네임}닉네임은 사용 불가능합니다.", ephemeral=True)
     else:
         # 정보 생성
-        cur.execute("""INSERT INTO user_info(nickname,id,exp,level,money,role,create_at,mooroong) 
-                    VALUES(%s,%s,%s,%s,%s,%s,%s,%s)""", (닉네임, interaction.user.id, 0, 1, 100, 0, datetime.datetime.today(), 0))
+        cur.execute("""INSERT INTO user_info(nickname,id,exp,level,rebirth,money,role,create_at,mooroong) 
+                    VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s)""", (닉네임, interaction.user.id, 0, 1, 0, 100, 0, datetime.datetime.today(), 0))
         cur.execute("INSERT INTO user_stat(id,power,hp,str,crit,crit_damage,point) VALUES(%s,%s,%s,%s,%s,%s,%s)",
                     (interaction.user.id, 1, 5, 5, 5, 50, 2))
         cur.execute("""INSERT INTO user_weapon(name,upgrade,`rank`,level,power,damage,wear,trade,id,url)
@@ -1892,9 +1908,9 @@ async def info(interaction: Interaction, 유저: discord.Member = None):
         cur = con.cursor()
         id = interaction.user.id if not 유저 else 유저.id  # 유저 값이 없으면 본인 정보 불러오기
         cur.execute(
-            "SELECT nickname,exp,level,money,create_at,mooroong FROM user_info WHERE id=%s", id)
+            "SELECT nickname,exp,level,rebirth,money,create_at,mooroong FROM user_info WHERE id=%s", id)
         user = makeDictionary(
-            ['nickname', 'exp', 'level', 'money', 'create_at', 'moorong'], cur.fetchone())
+            ['nickname', 'exp', 'level', 'rebirth', 'money', 'create_at', 'moorong'], cur.fetchone())
         cur.close()
         stat = getStatus(id)
         # embed 생성
@@ -1908,6 +1924,8 @@ async def info(interaction: Interaction, 유저: discord.Member = None):
         money = format(user['money'], ",")
         exp = format(user['exp'], ",")
         level_info_comma = format(level_info, ",")
+        embed.add_field(
+            name=f"환생 : {user['rebirth']}", value="\u200b", inline=True)
         embed.add_field(
             name=f"Lv. {user['level']} {exp}/{level_info_comma}({round(user['exp']/level_info*100)}%)", value=string_block, inline=True)
         embed.add_field(name=f"돈 : \n{money}💰", value="\u200b", inline=True)
