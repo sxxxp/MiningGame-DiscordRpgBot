@@ -380,7 +380,7 @@ def useNotTradeFirst(name: str, amount: int, id: int):
     cur.close()
 
 
-def block_exp(level: int, exp: int):
+def block_exp(rebirth: int, level: int, exp: int):
     '''
     경험치바 렌더러
     --------------
@@ -393,7 +393,7 @@ def block_exp(level: int, exp: int):
     name = ["0_", "1_", "2_", "3_", "4_", "5_", "6_", "7_", "8_", "9_", "10"]
     block = [discord.utils.get(guild.emojis, name=i) for i in name]
     level_info: dict = getJson('./json/level.json')
-    percent = round(exp/level_info[str(level)]*100)
+    percent = round(exp/level_info[str(rebirth)][str(level)]*100)
     string = ''
     cnt = 0
     for _ in range(int(percent/10)):
@@ -423,10 +423,11 @@ def filter_name(name: str):
     return True
 
 
-def is_levelup(level: int, exp: int, id: int):
+def is_levelup(rebirth: int, level: int, exp: int, id: int):
     '''
     레벨업 했을때
     ------------
+    - rebirth: 유저 환생
     - level: 유저 레벨
     - exp: 유저 경험치
     - id: 유저 아이디
@@ -435,8 +436,8 @@ def is_levelup(level: int, exp: int, id: int):
     '''
     level_info = getJson('./json/level.json')
     num = 0
-    while level_info[str(level+num)] <= exp:
-        exp -= level_info[str(level+num)]
+    while level_info[str(rebirth)][str(level+num)] <= exp:
+        exp -= level_info[str(rebirth)][str(level+num)]
         num += 1
     cur = con.cursor()
     cur.execute(
@@ -632,6 +633,12 @@ async def rebirth(interaction: Interaction):
     if level >= 60:
         cur.execute(
             "UPDATE user_info SET rebirth= rebirth + 1 , level=1,exp=0 WHERE id = %s", interaction.user.id)
+        cur.execute(
+            "UPDATE user_wear SET wear=0 WHERE wear =1 AND id = %s", interaction.user.id)
+        cur.execute(
+            "UPDATE user_weapon SET wear=0 WHERE wear =1 AND id = %s", interaction.user.id)
+        cur.execute(
+            "UPDATE user_title SET wear=0 WHERE wear =1 AND id = %s", interaction.user.id)
         cur.execute("UPDATE user_stat SET power=1,hp=5,str=5,crit=5,crit_damage=50,point = %s WHERE id = %s", ((
             rebirth+1)*30+2, interaction.user.id))
         con.commit()
@@ -1763,7 +1770,7 @@ async def ranking(interaction: Interaction, 종류: rankingEnum):
         cur.execute(
             "SELECT nickname,level,exp,rebirth FROM user_info ORDER BY rebirth DESC, level DESC, exp DESC, create_at ASC LIMIT 0,20 ")
         for i in cur.fetchall():
-            block, require = block_exp(i[1], i[2])
+            block, require = block_exp(i[3], i[1], i[2])
             embed.add_field(
                 name=f"{i[0]} {i[3]}차환생 Lv.{i[1]} ({i[2]}/{require})", value=block, inline=False)
         cur.execute(
@@ -1922,13 +1929,13 @@ async def info(interaction: Interaction, 유저: discord.Member = None):
         view.add_item(button)
         button.callback = setting
         embed = discord.Embed(
-            title=f"{user['nickname']}[{'칭호없음' if not stat['title'] else stat['title'] }]")
-        string_block, level_info = block_exp(user['level'], user['exp'])
+            title=f"{user['nickname']}[{'칭호없음' if not stat['title'] else stat['title'] }] {user['rebirth']}차환생")
+        string_block, level_info = block_exp(
+            user['rebirth'], user['level'], user['exp'])
         money = format(user['money'], ",")
         exp = format(user['exp'], ",")
         level_info_comma = format(level_info, ",")
-        embed.add_field(
-            name=f"환생 : {user['rebirth']}", value="\u200b", inline=True)
+
         embed.add_field(
             name=f"Lv. {user['level']} {exp}/{level_info_comma}({round(user['exp']/level_info*100)}%)", value=string_block, inline=True)
         embed.add_field(name=f"돈 : \n{money}💰", value="\u200b", inline=True)
@@ -2436,9 +2443,9 @@ async def mining(interaction: Interaction, 광산: miningEnum):
                         (enemy['exp'], interaction.user.id))
             con.commit()
             cur.execute(
-                "SELECT level,exp FROM user_info WHERE id = %s", interaction.user.id)
-            level, exp = cur.fetchone()
-            num = is_levelup(level, exp, interaction.user.id)
+                "SELECT rebirth,level,exp FROM user_info WHERE id = %s", interaction.user.id)
+            rebirth, level, exp = cur.fetchone()
+            num = is_levelup(rebirth, level, exp, interaction.user.id)
             embed = discord.Embed(title="보상 요약")
             embed.add_field(
                 name=f"{enemy['exp']} 경험치를 획득했습니다.", value="\u200b", inline=False)
