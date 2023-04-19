@@ -2346,7 +2346,7 @@ async def mining(interaction: Interaction, 광산: miningEnum):
     cur = con.cursor()
     if 광산.value <= 0:  # 특수 던전 일때
         utils = getJson('./json/util.json')
-        if not useNotTradeFirst(utils[ticket[광산.value]['code']]['name'], 1, interaction.user.id):
+        if not useNotTradeFirst(utils[str(ticket[광산.value]['code'])]['name'], 1, interaction.user.id):
             mining_dic[interaction.user.id] = False
             return await interaction.response.send_message("입장권이 없습니다.", ephemeral=True)
         cnt[interaction.user.id] = ticket[광산.value]['cnt']
