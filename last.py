@@ -18,6 +18,7 @@ import os
 GUILD_ID = '934824600498483220'
 LEVEL_PER_STAT = 2
 REBIRTH_PER_STAT = 50
+MAX_REBIRTH = 2
 KST = datetime.timezone(datetime.timedelta(hours=9))
 ticket = {
     -0: {'code': 2, 'cnt': 3},
@@ -633,13 +634,13 @@ def setup():
     cur.close()
 
 
-@tree.command(name="환생", description="60레벨 달성시")
+@tree.command(name="환생", description="70레벨 달성시")
 async def rebirth(interaction: Interaction):
     cur = con.cursor()
     cur.execute("SELECT rebirth,level FROM user_info WHERE id = %s",
                 interaction.user.id)
     rebirth, level = cur.fetchone()
-    if level >= 60:
+    if level >= 70 and rebirth != MAX_REBIRTH:
         cur.execute(
             "UPDATE user_info SET rebirth= rebirth + 1 , level=1,exp=0 WHERE id = %s", interaction.user.id)
         cur.execute(
@@ -743,11 +744,11 @@ async def reset_stat(interaction: Interaction):
         # 스크롤이 있을때
         cur.execute(
             "UPDATE user_item SET amount = amount - 1 WHERE id = %s AND item_id = %s", (interaction.user.id, 8))
-        cur.execute("SELECT level FROM user_info WHERE id = %s",
+        cur.execute("SELECT level,rebirth FROM user_info WHERE id = %s",
                     interaction.user.id)
-        level = cur.fetchone()[0]
+        level, rebirth = cur.fetchone()
         cur.execute("UPDATE user_stat SET power = 1 , str = 5, hp = 5, crit_damage=50 ,point = %s WHERE id = %s",
-                    (level*LEVEL_PER_STAT, interaction.user.id))
+                    (level*LEVEL_PER_STAT+rebirth*REBIRTH_PER_STAT, interaction.user.id))
         cur.close()
         con.commit()
         await interaction.response.send_message("성공적으로 스텟을 초기화 했습니다.", ephemeral=True)
