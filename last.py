@@ -857,7 +857,7 @@ async def makeItem(interaction: Interaction, 종류: makeItemEnum):
                         req_amounts.append(
                             item['required'][j])
                         embed.add_field(
-                            name="재료", value=f"{req_items[-1]} {item['required'][j]*cnt[interaction.user.id]} 개")
+                            name="재료", value=f"{req_items[-1]} {format(item['required'][j]*cnt[interaction.user.id],',')} 개")
                         if req_items[-1] == "골드":
                             cur.execute(
                                 "SELECT money FROM user_info WHERE id = %s", interaction.user.id)
