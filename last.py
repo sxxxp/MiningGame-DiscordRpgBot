@@ -464,11 +464,11 @@ def makeDictionary(keys: list, values: tuple):
     '''
     keys : values 딕셔너리 만들기
     ----------------------------
-    `return False : not keys or not values`
+    `return {} : not keys or not values`
     `return {keys:values} dict`
     '''
     if not values or not keys:
-        return False
+        return {}
     return {keys[i]: values[i] for i in range(len(keys))}
 
 
@@ -558,7 +558,10 @@ def getStatus(id: int):
     cur.execute(
         "SELECT power,damage/100,`option` FROM user_weapon WHERE id=%s AND wear = 1", id)
     weapon = makeDictionary(['power', 'damage', 'option'], cur.fetchone())
-    option = getOption(weapon['option'])
+    if weapon:
+        option = getOption(weapon['option'])
+    else:
+        option = {}
     cur.execute(
         "SELECT power,hp*3,str/10,crit,crit_damage/100,point FROM user_stat WHERE id=%s", id)
     stat = makeDictionary(['power', 'hp', 'str', 'crit',
