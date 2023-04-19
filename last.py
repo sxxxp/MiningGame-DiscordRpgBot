@@ -17,7 +17,7 @@ import os
 
 GUILD_ID = '934824600498483220'
 LEVEL_PER_STAT = 2
-REBIRTH_PER_STAT = 40
+REBIRTH_PER_STAT = 50
 KST = datetime.timezone(datetime.timedelta(hours=9))
 ticket = {
     -0: {'code': 2, 'cnt': 3},
