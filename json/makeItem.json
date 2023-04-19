@@ -10,11 +10,27 @@
         "trade": false,
         "url": "https://cdn.discordapp.com/attachments/988424121878741022/1087364454859145267/novice_pickaxe.png",
         "required": {
+          "money": 1000,
           "5": 2,
           "6": 10,
           "1": 5
         },
         "percent": 100
+      }
+    },
+    {
+      "지옥 수문장의 곡괭이": {
+        "name": "지옥 수문장의 곡괭이",
+        "rank": "A",
+        "level": 70,
+        "power": "340 350",
+        "damage": "100 150",
+        "trade": false,
+        "url": "",
+        "required": {
+          "money": 1000000,
+          "13": 100
+        }
       }
     }
   ],
@@ -126,7 +142,7 @@
       "빛나는 강화서": {
         "code": "7",
         "percent": 95,
-        "rank":"E",
+        "rank": "E",
         "required": {
           "1": 3,
           "6": 2,
@@ -202,6 +218,25 @@
           "7": 4
         },
         "percent": 100
+      }
+    },
+    {
+      "수문장": {
+        "name": "수문장",
+        "description": "지옥을 경험하고 온 자",
+        "rank": "A",
+        "level": 70,
+        "power": 150,
+        "hp": 400,
+        "str": 100,
+        "crit": 30,
+        "crit_damage": 100,
+        "damage": 100,
+        "trade": false,
+        "required": {
+          "money": 500000,
+          "13": 50
+        }
       }
     }
   ]
