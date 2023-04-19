@@ -911,7 +911,7 @@ async def makeItem(interaction: Interaction, 종류: makeItemEnum):
                             cur.execute(
                                 "UPDATE user_info SET money = money - %s WHERE id = %s", (req_amounts[i]*cnt[interaction.user.id], interaction.user.id))
                             con.commit()
-                        if not useNotTradeFirst(
+                        elif not useNotTradeFirst(
                                 req_items[i], req_amounts[i]*cnt[interaction.user.id], interaction.user.id):
                             return await interaction.response.edit_message(content="예기치 못한 오류!", embed=None, view=None)
                     if category != "item":
