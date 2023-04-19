@@ -68,5 +68,19 @@
     "rank": "E",
     "price": 400,
     "trade": true
+  },
+  "11": {
+    "name": "지옥 초대장",
+    "description": "지옥에 초대받을 수 있는 초대장이다.",
+    "rank": "B",
+    "price": 3000,
+    "trade": true
+  },
+  "12": {
+    "name": "지옥 초대장",
+    "description": "지옥에 초대받을 수 있는 초대장이다.",
+    "rank": "B",
+    "price": 1500,
+    "trade": false
   }
 }

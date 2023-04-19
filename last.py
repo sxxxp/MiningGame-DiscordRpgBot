@@ -27,11 +27,11 @@ ticket = {
     -4: {'code': 2, 'cnt': 3},
     -5: {'code': 2, 'cnt': 3},
     -6: {'code': 2, 'cnt': 3},
-    -8: {'code': 4, 'cnt': 6}}
+    -8: {'code': 4, 'cnt': 6},
+    -7: {'code': 11, 'cnt': 10}}
 
 
 class MyClient(discord.Client):
-
     @tasks.loop(time=datetime.time(hour=0, minute=0, second=0, tzinfo=KST))
     async def reward(self):
         tree.clear_commands()
@@ -134,12 +134,14 @@ class miningEnum(Enum):
     `반짝이는광산 : 3`
     `요일광산EASY : -datetime.datetime.now(tz=KST).weekday()`
     `주간광산EASY : -8`
+    `지옥광산`: -7`
     '''
     기본광산 = 1
     깊은광산 = 2
     반짝이는광산 = 3
     요일광산EASY = -datetime.datetime.now(tz=KST).weekday()
     주간광산EASY = -8
+    지옥광산 = -8
 
 
 class statusEnum(Enum):
@@ -366,6 +368,8 @@ def useNotTradeFirst(name: str, amount: int, id: int):
         "SELECT amount FROM user_item WHERE id = %s AND name = %s ORDER BY trade ASC", (id, name))
     items = cur.fetchall()
     if len(items) == 2:
+        if items[0][0]+items[1][0] < amount:
+            return False
         if items[0][0] <= amount:
             cur.execute(
                 "UPDATE user_item SET amount = 0 WHERE id = %s AND trade = 0 AND name = %s", (id, name))
@@ -375,10 +379,15 @@ def useNotTradeFirst(name: str, amount: int, id: int):
             cur.execute(
                 "UPDATE user_item SET amount = amount - %s WHERE id = %s AND trade = 0 AND name = %s", (amount, id, name))
     else:
-        cur.execute(
-            "UPDATE user_item SET amount = amount - %s WHERE id = %s AND name = %s", (amount, id, name))
+        if len(items) == 1 and items[0][0] < amount:
+            cur.execute(
+                "UPDATE user_item SET amount = amount - %s WHERE id = %s AND name = %s", (amount, id, name))
+            return False
+        else:
+            return False
     con.commit()
     cur.close()
+    return True
 
 
 def block_exp(rebirth: int, level: int, exp: int):
@@ -903,8 +912,9 @@ async def makeItem(interaction: Interaction, 종류: makeItemEnum):
                             cur.execute(
                                 "UPDATE user_info SET money = money - %s WHERE id = %s", (req_amounts[i]*cnt[interaction.user.id], interaction.user.id))
                             con.commit()
-                        useNotTradeFirst(
-                            req_items[i], req_amounts[i]*cnt[interaction.user.id], interaction.user.id)
+                        if not useNotTradeFirst(
+                                req_items[i], req_amounts[i]*cnt[interaction.user.id], interaction.user.id):
+                            return await interaction.response.edit_message(cotent="예기치 못한 오류!", embed=None, view=None)
                     if category != "item":
                         cur.close()
                         if getSuccess(percent, 100):
@@ -1115,7 +1125,8 @@ async def reinforce_weapon(interaction: Interaction, 종류: reinEnum):
         async def button_callback(interaction: Interaction):  # 강화하기 버튼 클릭시
             cur = con.cursor()
             for i in range(len(names)):
-                useNotTradeFirst(names[i], amounts[i], interaction.user.id)
+                if not useNotTradeFirst(names[i], amounts[i], interaction.user.id):
+                    return await interaction.response.edit_message(content="강화시도에 실패했습니다.", view=None, embed=None)
             cur.execute("UPDATE user_info SET money = money - %s WHERE id = %s",
                         (req_money, interaction.user.id))
             if getSuccess(req_percent, 100):  # 성공하면
@@ -2334,14 +2345,10 @@ async def mining(interaction: Interaction, 광산: miningEnum):
     cnt[interaction.user.id] = -1
     cur = con.cursor()
     if 광산.value <= 0:  # 특수 던전 일때
-        cur.execute("SELECT amount FROM user_item WHERE id= %s AND item_id=%s",
-                    (interaction.user.id, ticket[광산.value]['code']))
-        getTicket = cur.fetchone()
-        if not getTicket or getTicket[0] == 0:
+        utils = getJson('./json/util.json')
+        if not useNotTradeFirst(utils[ticket[광산.value]['code']]['name'], 1, interaction.user.id):
             mining_dic[interaction.user.id] = False
             return await interaction.response.send_message("입장권이 없습니다.", ephemeral=True)
-        else:
-            setItem(ticket[광산.value]['code'], interaction.user.id, 0)
         cnt[interaction.user.id] = ticket[광산.value]['cnt']
     stat = getStatus(interaction.user.id)
     stat['power'] = round(stat['power'], 2)
