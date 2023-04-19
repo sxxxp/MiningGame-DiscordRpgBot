@@ -379,10 +379,9 @@ def useNotTradeFirst(name: str, amount: int, id: int):
             cur.execute(
                 "UPDATE user_item SET amount = amount - %s WHERE id = %s AND trade = 0 AND name = %s", (amount, id, name))
     else:
-        if len(items) == 1 and items[0][0] < amount:
+        if len(items) == 1 and items[0][0] >= amount:
             cur.execute(
                 "UPDATE user_item SET amount = amount - %s WHERE id = %s AND name = %s", (amount, id, name))
-            return False
         else:
             return False
     con.commit()
