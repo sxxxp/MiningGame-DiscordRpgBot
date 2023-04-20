@@ -35,7 +35,6 @@ ticket = {
 class MyClient(discord.Client):
     @tasks.loop(time=datetime.time(hour=0, minute=0, second=0, tzinfo=KST))
     async def reward(self):
-        tree.clear_commands()
         await tree.sync()
         weekday = datetime.datetime.now(tz=KST).weekday()
         print(weekday)
