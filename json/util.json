@@ -89,5 +89,19 @@
     "rank":"A",
     "price":0,
     "trade":false
+  },
+  "14": {
+    "name": "단단한 광석의 핵",
+    "description": "단단한 돌을 깨 부셨다는 증거다.",
+    "rank":"E",
+    "price":2000,
+    "trade":false
+  },
+  "15": {
+    "name":"단단한 악세서리 교환권",
+    "description": "단단한 돌의 부산품이다.",
+    "rank": "E",
+    "price":3000,
+    "trade":true
   }
 }

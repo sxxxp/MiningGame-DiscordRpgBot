@@ -11,9 +11,9 @@ import math
 import asyncio
 import json
 import os
-# from dotenv import load_dotenv
+from dotenv import load_dotenv
 
-# load_dotenv()
+load_dotenv()
 
 GUILD_ID = '934824600498483220'
 LEVEL_PER_STAT = 2
@@ -88,6 +88,7 @@ con = pymysql.connect(host=os.environ['host'], password=os.environ['password'],
 adventrue_inventory = {}
 weapon_rein_dic = {}
 mining_dic = {}
+raid_dic = {}
 cnt = {}
 
 
@@ -123,6 +124,12 @@ class makeItemEnum(Enum):
     방어구 = "wear"
     기타 = "item"
     칭호 = "title"
+
+
+class bossEnum(Enum):
+    단단한돌3인 = {'name': '단단한돌', 'boss': 1, 'user': 3, 'level': 30}
+    단단한돌2인 = {'name': '단단한돌', 'boss': 1, 'user': 2, 'level': 35}
+    단단한돌1인 = {'name': '단단한돌', 'boss': 1, 'user': 1, 'level': 50}
 
 
 class miningEnum(Enum):
@@ -631,8 +638,12 @@ def setup():
     # user_title 유저 칭호(아이템아이디,이름,등급,레벨,체력,무게,크리티컬,힘,크리티컬 데미지,데미지,설명,착용여부,거래여부,아이디)
     cur.execute("""CREATE TABLE IF NOT EXISTS user_title
                 (item_id INT PRIMARY KEY AUTO_INCREMENT,name TEXT,`rank` TEXT,level INT, hp INT, `str` INT, crit INT,power INT, crit_damage INT, damage INT,description TEXT,wear BOOLEAN,trade BOOLEAN,id TEXT)""")
+    # shop 상점(아이템1,아이템2,아이템3,아이템4,아이템5,아이템6,아이디)
     cur.execute("""CREATE TABLE IF NOT EXISTS shop
                 (item1 TEXT,item2 TEXT,item3 TEXT,item4 TEXT, item5 TEXT,item6 TEXT, id TEXT)""")
+    # boss 보스(아이디,이름,힘,체력,층,골드,유틸아이템코드,유틸아이템드롭확률,유틸아이템드롭개수,경매아이템코드,경매아이템드롭확률,경매아이템드롭개수,이미지)
+    cur.execute("""CREATE TABLE IF NOT EXISTS boss
+                (id INT PRIMARY KEY,name TEXT,power INT,hp INT,gold INT, util_code TEXT,util_percent TEXT,util_amount TEXT,auction_code TEXT, auction_percent TEXT, auction_amount TEXT,url TEXT)""")
     cur.close()
 
 
@@ -644,19 +655,198 @@ async def rebirth(interaction: Interaction):
     rebirth, level = cur.fetchone()
     if level >= 70 and rebirth != MAX_REBIRTH:
         cur.execute(
-            "UPDATE user_info SET rebirth= rebirth + 1 , level=1,exp=0 WHERE id = %s", interaction.user.id)
+            "UPDATE user_info SET rebirth= rebirth + 1 , level=15,exp=0 WHERE id = %s", interaction.user.id)
         cur.execute(
-            "UPDATE user_wear SET wear=0 WHERE wear =1 AND id = %s", interaction.user.id)
+            "UPDATE user_wear SET wear=0 WHERE wear =1 AND id = %s AND `level` > 15", interaction.user.id)
         cur.execute(
-            "UPDATE user_weapon SET wear=0 WHERE wear =1 AND id = %s", interaction.user.id)
+            "UPDATE user_weapon SET wear=0 WHERE wear =1 AND id = %s AND `level` > 15", interaction.user.id)
         cur.execute(
-            "UPDATE user_title SET wear=0 WHERE wear =1 AND id = %s", interaction.user.id)
+            "UPDATE user_title SET wear=0 WHERE wear =1 AND id = %s AND `level` > 15", interaction.user.id)
         cur.execute("UPDATE user_stat SET power=1,hp=5,str=5,crit=5,crit_damage=50,point = %s WHERE id = %s", ((
-            rebirth+1)*REBIRTH_PER_STAT+LEVEL_PER_STAT, interaction.user.id))
+            rebirth+1)*REBIRTH_PER_STAT+LEVEL_PER_STAT*15, interaction.user.id))
         con.commit()
         await interaction.response.send_message(f"{rebirth+1}차 환생에 성공했습니다.", ephemeral=True)
     else:
         await interaction.response.send_message("환생에 실패했습니다.", ephemeral=True)
+
+
+@tree.command(name="레이드", description="레이드")
+async def raid(interaction: Interaction, 보스: bossEnum):
+    if not authorize(interaction.user.id):
+        return await interaction.response.send_message(f"`회원가입` 명령어로 먼저 회원가입을 해주세요.", ephemeral=True)
+    cur = con.cursor()
+    cur.execute("SELECT level FROM user_info WHERE id = %s",
+                interaction.user.id)
+    if cur.fetchone()[0] < 보스.value['level']:
+        return await interaction.response.send_message(f"최소 {보스.value['level']}레벨을 달성해야 합니다.", ephemeral=True)
+    try:
+        raid_dic[interaction.user.id]
+    except KeyError:
+        raid_dic[interaction.user.id] = True
+    else:
+        if raid_dic[interaction.user.id]:
+            return await interaction.response.send_message("이미 레이드에 참여 중입니다.", ephemeral=True)
+    matcher = interaction
+    party_info = {interaction.user.id: {}}
+    sign = [interaction.user.id]
+
+    async def sign_in(interaction: Interaction):
+        if interaction.user.id == matcher.user.id or not authorize(interaction.user.id) or interaction.user.id in sign:
+            return
+        cur.execute("SELECT level,mooroong FROM user_info WHERE id = %s",
+                    interaction.user.id)
+        level, mooroong = cur.fetchone()
+        if level < 보스.value['level']:
+            return await interaction.response.send_message(f"최소 {보스.value['level']}레벨을 달성해야 합니다.", ephemeral=True)
+        try:
+            raid_dic[interaction.user.id]
+        except KeyError:
+            raid_dic[interaction.user.id] = True
+        else:
+            if raid_dic[interaction.user.id]:
+                return await interaction.response.send_message("이미 레이드에 참여 중입니다.", ephemeral=True)
+        sign.append(interaction.user.id)
+        signer = interaction
+        stat = getStatus(interaction.user.id)
+        embed = discord.Embed(
+            title=f"Lv.{level} {getName(interaction.user.id)}")
+        embed.add_field(
+            name=f"{stat['power']}⛏ {stat['hp']}❤", value=f"{mooroong}층")
+        view = ui.View(timeout=600)
+        yes = ui.Button(label="수락하기", style=ButtonStyle.green,
+                        custom_id=str(interaction.user.id))
+        no = ui.Button(label="거절하기", style=ButtonStyle.red)
+
+        async def yes_callback(interaction: Interaction):
+            if len(party_info.keys()) == 보스.value['user']:
+                return await interaction.response.send_message("파티가 가득 찼습니다.", ephemeral=True)
+            party_info[int(interaction.data['custom_id'])] = {}
+            embed, view = match_setup()
+            await interaction.response.edit_message(content="")
+            await interaction.delete_original_response()
+            await matcher.edit_original_response(embed=embed, view=view)
+
+        async def no_callback(interaction: Interaction):
+            sign.remove(signer.user.id)
+            await signer.edit_original_response(content="거절당했습니다.")
+            await interaction.response.edit_message(content="거절", embed=None, view=None)
+            await interaction.delete_original_response()
+            await asyncio.sleep(7)
+            await signer.delete_original_response()
+        view.add_item(yes)
+        view.add_item(no)
+        yes.callback = yes_callback
+        no.callback = no_callback
+        await matcher.followup.send(embed=embed, view=view, ephemeral=True)
+        await interaction.response.send_message("성공적으로 지원했습니다.", ephemeral=True)
+
+    async def kick_select_callback(interaction: Interaction):
+        id = interaction.data['values'][0]
+        del party_info[id]
+        sign.remove(id)
+        del raid_dic[id]
+        await interaction.response.edit_message(content="")
+        await interaction.delete_original_response()
+        embed, view = match_setup()
+        await matcher.edit_original_response(embed=embed, view=view)
+
+    async def kick_callback(interaction: Interaction):
+        if interaction.user.id != matcher.user.id:
+            return await interaction.response.send_message("파티장이 아니면 사용할 수 없습니다.", ephemeral=True)
+        view = ui.View()
+        options = []
+        for i in party_info:
+            if i != matcher.user.id:
+                options.append(SelectOption(label=getName(i), value=i))
+        select = ui.Select(placeholder="강퇴할 유저를 선택해주세요.", options=options)
+        view.add_item(select)
+        select.callback = kick_select_callback
+        await interaction.response.send_message(view=view, ephemeral=True)
+
+    async def exit_callback(interaction: Interaction):
+        if interaction.user.id in party_info:
+            del party_info[interaction.user.id]
+            sign.remove(interaction.user.id)
+            del raid_dic[interaction.user.id]
+            await matcher.followup.send(content=f"{getName(interaction.user.id)} 유저님이 나갔습니다.", ephemeral=True)
+        if not party_info:
+            await matcher.delete_original_response()
+            return
+        if interaction.user.id == matcher.user.id:
+            for i in party_info:
+                sign.remove(i)
+                del raid_dic[i]
+                del party_info[i]
+            await matcher.delete_original_response()
+
+    async def matching(interaction: Interaction):
+        embed, view = match_setup()
+        await interaction.response.send_message(embed=embed, view=view)
+
+    async def go_callback(interaction: Interaction):
+        cur.execute(
+            "SELECT name,power,hp,gold,util_code,util_percent,util_amount,auction_code,auction_percent,auction_amount,url FROM boss WHERE id = %s", 보스.value['boss'])
+        boss = makeDictionary(['name', 'power', 'hp', 'gold', 'util_code',
+                              'util_percent', 'util_amount', 'auction_code', 'auction_percent', 'auction_amount', 'url'], cur.fetchone())
+        embed = discord.Embed(title=f"{boss['name']}")
+        embed.add_field(name=f"{boss['hp']}❤", value='\u200b')
+        embed.add_field(name=f"{boss['power']}⚡", value='\u200b')
+        embed.set_image(url=boss['url'])
+        view = ui.View()
+        meet = ui.Button(label="⛏", style=ButtonStyle.green)
+        view.add_item(meet)
+
+        async def meet_callback(interaction: Interaction):
+            bosshp = format(boss['hp'], ",")
+            bosspower = format(boss['power'], ',')
+            embed = discord.Embed(title=boss['name'])
+            embed.add_field(name=f"{bosshp}❤", value="\u200b")
+            embed.add_field(name=f"{bosspower}⚡", value="\u200b")
+            embed.add_field(name="\u200b", value='\u200b')
+            for i in party_info:
+                print(party_info[i])
+                myhp = format(party_info[i]['stat']['hp'], ',')
+                mypower = format(round(party_info[i]['stat']['power'], 2), ',')
+                embed.add_field(
+                    name=f"{getName(i)}\n{mypower}⛏ {myhp}❤", value="\u200b")
+            await matcher.edit_original_response(embed=embed, view=None)
+        meet.callback = meet_callback
+        await matcher.edit_original_response(embed=embed, view=view)
+
+    def match_setup():
+        embed = discord.Embed(
+            title=f"Lv.{보스.value['level']} {보스.value['name']} ({len(party_info.keys())}/{보스.value['user']})")
+        for i in party_info:
+            if not party_info[i]:
+                cur.execute(
+                    "SELECT level,nickname,rebirth,mooroong FROM user_info WHERE id = %s", i)
+                level, nickname, rebirth, mooroong = cur.fetchone()
+                party_info[i]['rebirth'] = rebirth
+                party_info[i]['nickname'] = nickname
+                party_info[i]['level'] = level
+                party_info[i]['mooroong'] = mooroong
+                party_info[i]['stat'] = getStatus(i)
+            party = party_info[i]
+            embed.add_field(
+                name=f"{party['rebirth']}차 환생 Lv.{party['level']} {party['nickname']}[{party['mooroong']}층]", value=f"{round(party['stat']['power'],2)}⛏ {party['stat']['hp']}⚡", inline=False)
+        view = ui.View(timeout=None)
+        button = ui.Button(label="지원하기", style=ButtonStyle.green, disabled=len(
+            party_info.keys()) == 보스.value['user'])
+        go = ui.Button(label="출발하기", style=ButtonStyle.red,
+                       disabled=len(party_info.keys()) != 보스.value['user'])
+        exit = ui.Button(label="탈퇴하기", style=ButtonStyle.red, row=2)
+        kick = ui.Button(label="강퇴하기", style=ButtonStyle.red,
+                         row=2, disabled=len(party_info.keys()) == 1)
+        view.add_item(button)
+        view.add_item(go)
+        view.add_item(exit)
+        view.add_item(kick)
+        button.callback = sign_in
+        exit.callback = exit_callback
+        kick.callback = kick_callback
+        go.callback = go_callback
+        return embed, view
+    await matching(interaction)
 
 
 @tree.command(name="데이터베이스싱크", description="제작자 전용 명령어")
@@ -985,6 +1175,8 @@ async def deleteUser(interaction: Interaction):
                 cur.execute("DELETE FROM user_title WHERE id = %s",
                             interaction.user.id)
                 cur.execute("DELETE FROM shop WHERE id = %s",
+                            interaction.user.id)
+                cur.execute("DELETE FROM user_boss WHERE id = %s",
                             interaction.user.id)
                 cur.close()
                 con.commit()
@@ -1788,7 +1980,7 @@ async def ranking(interaction: Interaction, 종류: rankingEnum):
             embed.add_field(
                 name=f"{i[0]} {i[3]}차환생 Lv.{i[1]} ({i[2]}/{require})", value=block, inline=False)
         cur.execute(
-            "SELECT RANKING FROM (SELECT *,RANK() OVER (rebirth DESC, ORDER BY `level` DESC, `exp` DESC, create_at ASC) RANKING FROM user_info) AS ranked_user_info WHERE id = %s", interaction.user.id)
+            "SELECT RANKING FROM (SELECT *,RANK() OVER (ORDER BY rebirth DESC, `level` DESC, `exp` DESC, create_at ASC) RANKING FROM user_info) AS ranked_user_info WHERE id = %s", interaction.user.id)
     elif 종류.value == "money":  # 자산기준 랭킹
         cur.execute(
             "SELECT nickname,money FROM user_info ORDER BY money DESC, create_at ASC LIMIT 0,20")
@@ -1915,6 +2107,8 @@ async def register(interaction: Interaction, 닉네임: str):
         cur.execute("""INSERT INTO user_weapon(name,upgrade,`rank`,level,power,damage,wear,trade,id,url)
                     VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
                     ('기본 곡괭이', 0, 'F', 1, 5, 100, 1, 0, interaction.user.id, "https://cdn.discordapp.com/attachments/988424121878741022/1040198148661973022/pickaxe1.png"))
+        cur.execute("INSERT INTO user_boss(id) VALUES(%s)",
+                    interaction.user.id)
         con.commit()
         cur.close()
         await interaction.response.send_message("아이디가 생성되었습니다.", ephemeral=True)
@@ -2177,21 +2371,21 @@ async def inventory(interaction: Interaction, 종류: makeItemEnum):
             cur.execute(
                 "SELECT name,upgrade,`rank`,level,collection,part,wear,trade FROM user_wear WHERE id = %s ORDER BY item_id ASC LIMIT %s,10",
                 (interaction.user.id, page[interaction.user.id] * 10))
-            for i in cur.fetchall():
+            for j, i in enumerate(cur.fetchall()):
                 embed.add_field(
-                    name=f"Lv.{i[3]} {i[0]}[{i[2]}] +{i[1]} ({'거래가능' if i[-1] else '거래불가'}) {'착용중' if i[-2] else ''}", value=f"{i[4]} 세트", inline=False)
+                    name=f"{j+1}. Lv.{i[3]} {i[0]}[{i[2]}] +{i[1]} ({'거래가능' if i[-1] else '거래불가'}) {'착용중' if i[-2] else ''}", value=f"{i[4]} 세트", inline=False)
         elif category == "title":
             cur.execute(
                 "SELECT name,`rank`,level,wear,trade FROM user_title WHERE id = %s ORDER BY item_id ASC LIMIT %s,10", (interaction.user.id, page[interaction.user.id]*10))
-            for i in cur.fetchall():
+            for j, i in enumerate(cur.fetchall()):
                 embed.add_field(
-                    name=f"Lv.{i[2]} {i[0]}[{i[1]}] ({'거래가능' if i[-1] else '거래불가'}) {'착용중' if i[-2] else ''}", value='\u200b', inline=False)
+                    name=f"{j+1}. Lv.{i[2]} {i[0]}[{i[1]}] ({'거래가능' if i[-1] else '거래불가'}) {'착용중' if i[-2] else ''}", value='\u200b', inline=False)
         else:
             cur.execute("SELECT name,upgrade,`rank`,level,wear,trade FROM user_weapon WHERE id = %s ORDER BY item_id ASC LIMIT %s,10",
                         (interaction.user.id, page[interaction.user.id]*10))
-            for i in cur.fetchall():
+            for j, i in enumerate(cur.fetchall()):
                 embed.add_field(
-                    name=f"Lv.{i[3]} {i[0]}[{i[2]}] +{i[1]} ({'거래가능' if i[-1] else '거래불가'}) {'착용중' if i[-2] else ''}", value='\u200b', inline=False)
+                    name=f"{j+1}. Lv.{i[3]} {i[0]}[{i[2]}] +{i[1]} ({'거래가능' if i[-1] else '거래불가'}) {'착용중' if i[-2] else ''}", value='\u200b', inline=False)
 
         embed.set_footer(text=f"{page[interaction.user.id]+1} 페이지")
         view = ui.View(timeout=None)
@@ -2252,7 +2446,7 @@ async def mooroong(interaction: Interaction):
 
     async def go_callback(interaction: Interaction):  # 도전하기
         enemy = makeDictionary(['name', 'power', 'hp'], ("시련의 광석",
-                               floor[interaction.user.id]*2, floor[interaction.user.id]*20))
+                               floor[interaction.user.id]*5, floor[interaction.user.id]*50))
 
         async def end_win_callback(interaction: Interaction):  # 전투 끝날때
             await interaction.response.edit_message(content="재정비...")
@@ -2278,13 +2472,18 @@ async def mooroong(interaction: Interaction):
                             (floor[interaction.user.id], interaction.user.id))
                 con.commit()
             cur.close()
-            await interaction.response.edit_message(content="", embed=embed, view=None)
+            try:
+                await interaction.response.edit_message(content="", embed=embed, view=None)
+            except discord.errors.InteractionResponded:
+                await interaction.edit_original_response(content="", embed=embed, view=None)
 
         async def attack_callback(interaction: Interaction):  # 공격했을때
             if getSuccess(stat['crit'], 100):
                 enemy['hp'] -= stat['power']+stat['power']*stat['crit_damage']
+                interaction.data['custom_id'] = 'True'
             else:
                 enemy['hp'] -= stat['power']
+                interaction.data['custom_id'] = "False"
             stat['hp'] -= enemy['power']
             if enemy['hp'] <= 0:
                 if stat['hp'] >= enemy['hp']:
@@ -2296,12 +2495,17 @@ async def mooroong(interaction: Interaction):
             await try_callback(interaction)
 
         async def try_callback(interaction: Interaction):  # 도전하기
+            enemyhp = format(enemy['hp'], ",")
+            myhp = format(stat['hp'], ",")
+            enemypower = format(enemy['power'], ",")
+            mypower = format(round(stat['power'], 2), ",")
+
             embed = discord.Embed(title=enemy['name'])
-            embed.add_field(name=f"{round(enemy['hp'],3)}❤", value="\u200b")
-            embed.add_field(name=f"{enemy['power']}⚡", value="\u200b")
+            embed.add_field(name=f"{enemyhp}❤", value="\u200b")
+            embed.add_field(name=f"{enemypower}⚡", value="\u200b")
             embed.add_field(name=f"나", value="\u200b", inline=False)
-            embed.add_field(name=f"{stat['hp']}❤", value='\u200b')
-            embed.add_field(name=f"{stat['power']}⛏", value='\u200b')
+            embed.add_field(name=f"{myhp}❤", value='\u200b')
+            embed.add_field(name=f"{mypower}⛏", value='\u200b')
             view = ui.View(timeout=None)
             attack = ui.Button(emoji="⛏", style=ButtonStyle.green)
             view.add_item(attack)
@@ -2311,12 +2515,12 @@ async def mooroong(interaction: Interaction):
             except discord.errors.InteractionResponded:
                 pass
         if stat['hp'] <= 0:
-            return lose(interaction)
+            return await lose(interaction)
         await try_callback(interaction)
 
     async def start(interaction: Interaction):  # 기본 정비 함수
         if stat['hp'] <= 0:
-            return go_callback(interaction)
+            return await go_callback(interaction)
         rest = discord.Embed(title="정비")
         rest.add_field(
             name=f"남은 체력 : {stat['hp']}", value="\u200b", inline=False)
@@ -2527,8 +2731,10 @@ async def mining(interaction: Interaction, 광산: miningEnum):
 
         async def attack_callback(interaction: Interaction):  # 공격했을때
             if getSuccess(stat['crit'], 100):
+                interaction.data["custom_id"] = "True"
                 enemy['hp'] -= stat['power']+stat['power']*stat['crit_damage']
             else:
+                interaction.data["custom_id"] = "False"
                 enemy['hp'] -= stat['power']
             stat['hp'] -= enemy['power']
             if enemy['hp'] <= 0:
@@ -2542,13 +2748,17 @@ async def mining(interaction: Interaction, 광산: miningEnum):
 
         async def try_callback(interaction: Interaction):  # 도전하기
             enemyhp = format(round(enemy['hp'], 2), ",")
+            enemypower = format(enemy['power'], ",")
+            mypower = format(round(stat['power']), ",")
             myhp = format(stat['hp'], ",")
             embed = discord.Embed(title=enemy['name'])
             embed.add_field(name=f"{enemyhp}❤", value="\u200b")
-            embed.add_field(name=f"{enemy['power']}⚡", value="\u200b")
+            embed.add_field(name=f"{enemypower}⚡", value="\u200b")
             embed.add_field(name=f"나", value="\u200b", inline=False)
             embed.add_field(name=f"{myhp}❤", value='\u200b')
-            embed.add_field(name=f"{stat['power']}⛏", value='\u200b')
+            embed.add_field(name=f"{mypower}⛏", value='\u200b')
+            if interaction.data['custom_id'] == "True":
+                embed.add_field(name="크리티컬!", value='\u200b', inline=False)
             embed.set_thumbnail(url=enemy['url'])
             view = ui.View(timeout=None)
             attack = ui.Button(emoji="⛏", style=ButtonStyle.green)
@@ -2564,7 +2774,7 @@ async def mining(interaction: Interaction, 광산: miningEnum):
             hp = format(enemy['hp'])
             embed.add_field(name=f"{hp}❤", value="\u200b")
             embed.add_field(name=f"{enemy['power']}⚡", value="\u200b")
-            embed.set_thumbnail(url=enemy['url'])
+            embed.set_image(url=enemy['url'])
             view = ui.View(timeout=None)
             try_button = ui.Button(
                 label='도전하기', emoji='⛏', style=ButtonStyle.green)
