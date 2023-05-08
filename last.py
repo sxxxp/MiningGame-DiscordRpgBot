@@ -6,6 +6,7 @@ import datetime
 import pymysql
 from enum import Enum
 from itertools import chain
+from collections import Counter
 import random
 import math
 import asyncio
@@ -19,6 +20,7 @@ GUILD_ID = '934824600498483220'
 LEVEL_PER_STAT = 2
 REBIRTH_PER_STAT = 50
 MAX_REBIRTH = 2
+MAX_LEVEL = 70
 KST = datetime.timezone(datetime.timedelta(hours=9))
 ticket = {
     -0: {'code': 2, 'cnt': 3},
@@ -53,7 +55,7 @@ class MyClient(discord.Client):
                     ('3 -1 250', "5 10 350", "6 15 75", "7 5 1000", "8 1 30000", "9 1 50000", i[0]))
             if weekday == 4:
                 setItem(4, i[0], 1)
-
+                cur.execute("UPDATE user_boss SET boss1=0")
         con.commit()
         cur.close()
 
@@ -102,6 +104,9 @@ class reinEnum(Enum):
     `장갑 : 3`
     `신발 : 4`
     `망토 : 5`
+    `목걸이 : 6`
+    `반지 : 7`
+    `귀걸이 : 8`
     '''
     무기 = 0
     투구 = 1
@@ -109,6 +114,9 @@ class reinEnum(Enum):
     장갑 = 3
     신발 = 4
     망토 = 5
+    목걸이 = 6
+    반지 = 7
+    귀걸이 = 8
 
 
 class makeItemEnum(Enum):
@@ -127,9 +135,9 @@ class makeItemEnum(Enum):
 
 
 class bossEnum(Enum):
-    단단한돌3인 = {'name': '단단한돌', 'boss': 1, 'user': 3, 'level': 30}
-    단단한돌2인 = {'name': '단단한돌', 'boss': 1, 'user': 2, 'level': 35}
-    단단한돌1인 = {'name': '단단한돌', 'boss': 1, 'user': 1, 'level': 50}
+    단단한돌3인 = {'name': '단단한돌', 'boss': 1, 'id': 1, 'user': 3, 'level': 30}
+    단단한돌2인 = {'name': '단단한돌', 'boss': 1, 'id': 1, 'user': 2, 'level': 35}
+    단단한돌1인 = {'name': '단단한돌', 'boss': 1, 'id': 1, 'user': 1, 'level': 50}
 
 
 class miningEnum(Enum):
@@ -213,11 +221,11 @@ def getPart(part: int):
     '''
     part를 한글로 변환
     -----------------
-    - parts=["","투구","갑옷","장갑","신발","망토"] 
+    - parts=["","투구","갑옷","장갑","신발","망토","목걸이","반지","귀걸이"] 
 
     `return parts[part]`
     '''
-    parts = ['', '투구', '갑옷', '장갑', '신발', "망토"]
+    parts = ['', '투구', '갑옷', '장갑', '신발', '망토', '목걸이', '반지', '귀걸이']
     return parts[part]
 
 
@@ -257,11 +265,11 @@ def getPartRein(part: int):
     방어구 스텟 확인
     ---------------
     - 0: 무기
-    - parts=["힘","체력","중량","힘","체력","중량"]
+    - parts=["힘","체력","중량","힘","체력","중량","체력","체력","체력"]
 
     `return parts[part]`
     '''
-    parts = ['힘', '체력', '중량', '힘', '체력', '중량']
+    parts = ['힘', '체력', '중량', '힘', '체력', '중량', '체력', '체력', '체력']
     return parts[part]
 
 
@@ -298,7 +306,7 @@ def getItem(code: int, id: int, cnt: int):
     cur.close()
 
 
-def getRandomValue(val_range: str):
+def getRandomValue1(val_range: str):
     '''
     랜덤 숫자 추출기
     ---------------
@@ -312,6 +320,20 @@ def getRandomValue(val_range: str):
     return random.randint(int(a), int(b))
 
 
+def getRandomValue2(val_range: str):
+    '''
+    랜덤 숫자 추출기
+    ---------------
+    - ex) val_range:"0~5"
+
+    - 0~5사이 숫자 랜덤 추출하기
+
+    `return val_range 사이 숫자` 
+    '''
+    a, b = val_range.split("~")
+    return random.randint(int(a), int(b))
+
+
 def getWear(item: dict, id: int):
     '''
     방어구 정보 만들기
@@ -320,9 +342,9 @@ def getWear(item: dict, id: int):
     - id: 유저 아이디
     '''
     cur = con.cursor()
-    power = getRandomValue(item['power'])
-    hp = getRandomValue(item['hp'])
-    str = getRandomValue(item['str'])
+    power = getRandomValue1(item['power'])
+    hp = getRandomValue1(item['hp'])
+    str = getRandomValue1(item['str'])
     cur.execute(
         "INSERT INTO user_wear(name,upgrade,`rank`,level,power,hp,`str`,collection,part,wear,trade,id,url) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
         (item['name'], 0, item['rank'], item['level'], power, hp, str, item['collection'], item['part'], 0, item['trade'], id, item['url']))
@@ -338,8 +360,8 @@ def getWeapon(item: dict, id: int):
     - id: 유저 아이디
     '''
     cur = con.cursor()
-    power = getRandomValue(item['power'])
-    damage = getRandomValue(item['damage'])
+    power = getRandomValue1(item['power'])
+    damage = getRandomValue1(item['damage'])
     cur.execute(
         "INSERT INTO user_weapon(name,upgrade,`rank`,level,power,damage,wear,trade,id,url) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
         (item['name'], 0, item['rank'], item['level'], power, damage, 0, item['trade'], id, item['url']))
@@ -409,14 +431,18 @@ def block_exp(rebirth: int, level: int, exp: int):
     name = ["0_", "1_", "2_", "3_", "4_", "5_", "6_", "7_", "8_", "9_", "10"]
     block = [discord.utils.get(guild.emojis, name=i) for i in name]
     level_info: dict = getJson('./json/level.json')
-    percent = round(exp/level_info[str(rebirth)][str(level)]*100)
+    if level == MAX_LEVEL:
+        percent = 100
+    else:
+        percent = round(exp/level_info[str(rebirth)][str(level)]*100)
     string = ''
     cnt = 0
     for _ in range(int(percent/10)):
         string += str(block[10])
         cnt += 1
-    string += str(block[int(percent % 10)])
-    cnt += 1
+    if cnt != 10:
+        string += str(block[int(percent % 10)])
+        cnt += 1
     for _ in range(10-cnt):
         string += str(block[0])
         cnt += 1
@@ -450,6 +476,8 @@ def is_levelup(rebirth: int, level: int, exp: int, id: int):
 
     `return 레벨업한 숫자`
     '''
+    if level == MAX_LEVEL:
+        return
     level_info = getJson('./json/level.json')
     num = 0
     while level_info[str(rebirth)][str(level+num)] <= exp:
@@ -670,6 +698,12 @@ async def rebirth(interaction: Interaction):
         await interaction.response.send_message("환생에 실패했습니다.", ephemeral=True)
 
 
+@tree.command(name="레이드초기화", description="레이드초기화")
+async def raid_clear(interaction: Interaction, 유저: str):
+    if interaction.user.id == 432066597591449600:
+        raid_dic[int(유저)] = False
+
+
 @tree.command(name="레이드", description="레이드")
 async def raid(interaction: Interaction, 보스: bossEnum):
     if not authorize(interaction.user.id):
@@ -686,6 +720,13 @@ async def raid(interaction: Interaction, 보스: bossEnum):
     else:
         if raid_dic[interaction.user.id]:
             return await interaction.response.send_message("이미 레이드에 참여 중입니다.", ephemeral=True)
+        raid_dic[interaction.user.id] = True
+    cur.execute(
+        f"SELECT boss{보스.value['boss']} FROM user_boss WHERE id = %s", interaction.user.id)
+    isboss = cur.fetchone()
+    if isboss and isboss[0]:
+        raid_dic[interaction.user.id] = False
+        return await interaction.response.send_message("이미 레이드를 클리어 했습니다.", ephemeral=True)
     matcher = interaction
     party_info = {interaction.user.id: {}}
     sign = [interaction.user.id]
@@ -705,6 +746,12 @@ async def raid(interaction: Interaction, 보스: bossEnum):
         else:
             if raid_dic[interaction.user.id]:
                 return await interaction.response.send_message("이미 레이드에 참여 중입니다.", ephemeral=True)
+        cur.execute(
+            f"SELECT boss{보스.value['boss']} FROM user_boss WHERE id = %s", interaction.user.id)
+        isboss = cur.fetchone()
+        if isboss and isboss[0]:
+            raid_dic[interaction.user.id] = False
+            return await interaction.response.send_message("이미 레이드를 클리어 했습니다.", ephemeral=True)
         sign.append(interaction.user.id)
         signer = interaction
         stat = getStatus(interaction.user.id)
@@ -784,33 +831,226 @@ async def raid(interaction: Interaction, 보스: bossEnum):
         await interaction.response.send_message(embed=embed, view=view)
 
     async def go_callback(interaction: Interaction):
+        ready = {}
+        for i in sign:
+            ready[i] = False
         cur.execute(
-            "SELECT name,power,hp,gold,util_code,util_percent,util_amount,auction_code,auction_percent,auction_amount,url FROM boss WHERE id = %s", 보스.value['boss'])
+            "SELECT name,power,hp,gold,util_code,util_percent,util_amount,auction_code,auction_percent,auction_amount,url FROM boss WHERE id = %s", 보스.value['id'])
         boss = makeDictionary(['name', 'power', 'hp', 'gold', 'util_code',
                               'util_percent', 'util_amount', 'auction_code', 'auction_percent', 'auction_amount', 'url'], cur.fetchone())
         embed = discord.Embed(title=f"{boss['name']}")
-        embed.add_field(name=f"{boss['hp']}❤", value='\u200b')
-        embed.add_field(name=f"{boss['power']}⚡", value='\u200b')
+        embed.add_field(name=f"{format(boss['hp'],',')}❤", value='\u200b')
+        embed.add_field(name=f"{format(boss['power'],',')}⚡", value='\u200b')
+        embed.add_field(name="\u200b", value='\u200b', inline=False)
         embed.set_image(url=boss['url'])
         view = ui.View()
-        meet = ui.Button(label="⛏", style=ButtonStyle.green)
+        meet = ui.Button(label="⛏", style=ButtonStyle.green, custom_id="First")
         view.add_item(meet)
 
+        async def win():
+            util_code = boss['util_code'].split(" ")
+            util_percent = boss['util_percent'].split(" ")
+            util_amount = boss['util_amount'].split(" ")
+            embed = discord.Embed(title="토벌 성공!")
+            embed.add_field(
+                name=f"{format( boss['gold'],',')}골드 획득!", value="\u200b", inline=False)
+            util = getJson('./json/util.json')
+            for i in party_info:
+                text = ''
+                cur.execute(
+                    "UPDATE user_info SET money = money + %s WHERE id = %s", (boss['gold'], i))
+                for idx in range(len(util_code)):
+                    if not util_amount[idx] or not util_code[idx] or not util_percent[idx]:
+                        break
+                    if getSuccess(int(util_percent[idx]), 100):
+                        code = int(util_code[idx])
+                        value = getRandomValue2(util_amount[idx])
+                        getItem(code, i, value)
+                        text += f'[{code}] {util[str(code)]["name"]} {value}개 획득!\n'
+                embed.add_field(name=f"{getName(i)}님",
+                                value=text, inline=False)
+                cur.execute("SELECT COUNT(*) FROM user_boss WHERE id = %s", i)
+                if cur.fetchone()[0]:
+                    cur.execute(
+                        f"UPDATE user_boss SET boss{보스.value['boss']}=1 WHERE id = %s", i)
+                else:
+                    cur.execute(
+                        f"INSERT INTO user_boss(id,boss{보스.value['boss']}) VALUES(%s,%s)", (i, 1))
+            con.commit()
+
+            auction_code: list = boss['auction_code'].split(" ")
+            auction_percent: list = boss['auction_percent'].split(" ")
+            auction_amount: list = boss['auction_amount'].split(" ")
+            for i in range(len(auction_code)):
+                if not getSuccess(int(auction_percent[i]), 100):
+                    auction_code.pop(i)
+                    auction_amount.pop(i)
+            embed.add_field(name="\u200b", value='\u200b', inline=False)
+            embed.add_field(name="잠시 후 경매 화면으로 넘어갑니다.", value="\u200b")
+            await matcher.edit_original_response(content="", embed=embed, view=None)
+            await asyncio.sleep(9)
+
+            async def up_callback(interaction: Interaction):
+                auctioner, price, index = interaction.data['custom_id']\
+                    .split(" ")
+                money = getMoney(interaction.user.id)
+                if int(price) > money:
+                    await interaction.response.send_message(f"돈이 부족합니다. {money}골드 보유중", ephemeral=True)
+                    await asyncio.sleep(2)
+                    return await interaction.delete_original_response()
+                if int(auctioner) == interaction.user.id:
+                    await interaction.response.send_message("이미 입찰중 입니다.", ephemeral=True)
+                    await asyncio.sleep(2)
+                    return await interaction.delete_original_response()
+                await interaction.response.send_message("성공적으로 입찰했습니다.", ephemeral=True)
+                await interaction.delete_original_response()
+                global is_up
+                is_up = True
+                await auction_callback(interaction, interaction.user.id, int(price)+500, int(index))
+
+            async def auction_callback(interaction: Interaction, auctioner: int, price: int, index: int):
+                global is_up
+                embed = discord.Embed(title="경매")
+                util = getJson('./json/util.json')
+                embed.add_field(name="경매 물품", value="\u200b", inline=False)
+                for i in range(len(auction_code)):
+                    if type(auction_amount[i]) is str:
+                        auction_amount[i] = getRandomValue2(auction_amount[i])
+                    embed.add_field(
+                        name=f"[{auction_code[i]}]{util[str(auction_code[i])]['name']} {auction_amount[i]}개", value='\u200b')
+                name = getName(auctioner)
+                embed.add_field(name="\u200b", value="\u200b", inline=False)
+                embed.add_field(
+                    name=f"[{auction_code[index]}]{util[str(auction_code[index])]['name']} {auction_amount[index]}개", value="\u200b")
+                embed.add_field(name="\u200b", value="\u200b", inline=False)
+                embed.add_field(
+                    name=f"입찰가 : {format(price,',')} 골드", value='\u200b')
+                embed.add_field(
+                    name=f"구매자 : {name if name else '없음'}", value="\u200b")
+                embed.add_field(name="10초 후 낙찰됩니다.",
+                                value='\u200b', inline=False)
+                up_button = ui.Button(style=ButtonStyle.green,
+                                      label="입찰하기", custom_id=f"{auctioner} {price} {index}")
+                view = ui.View()
+                view.add_item(up_button)
+                up_button.callback = up_callback
+                await matcher.edit_original_response(embed=embed, view=view)
+                await asyncio.sleep(10)
+                try:
+                    is_up
+                except NameError:
+                    if len(auction_amount)-1 > index:
+                        await matcher.edit_original_response(embed=None, view=None, content="경매가 종료 되었습니다.")
+                        await asyncio.sleep(5)
+                        cur.close()
+                        return await matcher.delete_original_response()
+                    return await auction_callback(interaction, 0, 3000, index+1)
+                if is_up:
+                    is_up = False
+                    return
+                if len(auction_amount)-1 > index:
+                    getItem(
+                        auction_code[index], auctioner, auction_amount[index])
+                    cur.execute(
+                        "UPDATE user_info SET money = money - %s WHERE id = %s", (price, auctioner))
+                    await auction_callback(interaction, 0, 3000, index+1)
+                else:
+                    getItem(
+                        auction_code[index], auctioner, auction_amount[index])
+                    cur.execute(
+                        "UPDATE user_info SET money = money - %s WHERE id = %s", (price, auctioner))
+                    await matcher.edit_original_response(embed=None, view=None, content="경매가 종료 되었습니다.")
+                    await asyncio.sleep(5)
+                    await matcher.delete_original_response()
+                    cur.close()
+            await auction_callback(interaction, 0, 3000, 0)
+
+        async def lose():
+            if len(ready) == 0:
+                embed = discord.Embed(title="토벌실패")
+                await matcher.edit_original_response(
+                    embed=embed, view=None, content="")
+                await asyncio.sleep(10)
+                await matcher.delete_original_response()
+                for i in party_info:
+                    raid_dic[i] = False
+
+        async def die(id: int):
+            del ready[id]
+            print(ready)
+            await lose()
+
+        async def attack_callback(interaction: Interaction):
+            if not interaction.user.id in ready.keys():
+                return
+            ready[interaction.user.id] = True
+            isready = len(ready.keys()) == Counter(ready.values())[True]
+            keys = list(ready.keys())
+            if isready:
+                string = ''
+                for i in keys:
+                    if getSuccess(party_info[i]['stat']['crit'], 100):
+                        damage = party_info[i]['stat']['power']+party_info[i]['stat']['power'] * \
+                            party_info[i]['stat']['crit_damage']
+                    else:
+                        damage = party_info[i]['stat']['power']
+                    party_info[i]['stat']['hp'] -= boss['power']
+                    if party_info[i]['stat']['hp'] < 0:
+                        await die(i)
+                        if len(ready.keys()) == 0:
+                            return
+                    boss['hp'] -= damage
+                    string += f'{i}/{damage} '
+                    ready[i] = False
+                if boss['hp'] < 0:
+                    return await win()
+                interaction.data['custom_id'] = string
+                await meet_callback(interaction)
+            else:
+                interaction.data['custom_id'] = "ready"
+                await meet_callback(interaction)
+
         async def meet_callback(interaction: Interaction):
-            bosshp = format(boss['hp'], ",")
+            bosshp = format(round(boss['hp'], 2),  ",")
             bosspower = format(boss['power'], ',')
             embed = discord.Embed(title=boss['name'])
             embed.add_field(name=f"{bosshp}❤", value="\u200b")
             embed.add_field(name=f"{bosspower}⚡", value="\u200b")
             embed.add_field(name="\u200b", value='\u200b')
             for i in party_info:
-                print(party_info[i])
                 myhp = format(party_info[i]['stat']['hp'], ',')
                 mypower = format(round(party_info[i]['stat']['power'], 2), ',')
-                embed.add_field(
-                    name=f"{getName(i)}\n{mypower}⛏ {myhp}❤", value="\u200b")
-            await matcher.edit_original_response(embed=embed, view=None)
+                try:
+                    ready[i]
+                except KeyError:
+                    embed.add_field(
+                        name=f"{getName(i)}\n{mypower}⛏ {myhp}❤", value="전투불능")
+                else:
+                    embed.add_field(
+                        name=f"{getName(i)}\n{mypower}⛏ {myhp}❤", value="준비완료" if ready[i] else "\u200b")
+
+            if interaction.data['custom_id'] != "ready":
+                data = interaction.data['custom_id'].split(" ")
+                if data.count("/") != 0:
+                    for i in data:
+                        user, damage = i.split("/")
+                        embed.add_field(
+                            name=f"{getName(user)}님이 {format(round(float(damage),2),',')}⛏를 입혔습니다.", value='\u200b', inline=False)
+            view = ui.View()
+            attack = ui.Button(label="⛏", style=ButtonStyle.green)
+            view.add_item(attack)
+            attack.callback = attack_callback
+            if interaction.data['custom_id'] == "First":
+                await interaction.response.send_message(content="\u200b", ephemeral=True)
+                await interaction.delete_original_response()
+            else:
+                await interaction.response.send_message(content="준비완료 되었습니다.", ephemeral=True)
+                await interaction.delete_original_response()
+            await matcher.edit_original_response(embed=embed, view=view)
         meet.callback = meet_callback
+        if interaction.data['custom_id'] == "First":
+            await interaction.response.send_message(content="\u200b", ephemeral=True)
+            await interaction.delete_original_response()
         await matcher.edit_original_response(embed=embed, view=view)
 
     def match_setup():
@@ -828,12 +1068,12 @@ async def raid(interaction: Interaction, 보스: bossEnum):
                 party_info[i]['stat'] = getStatus(i)
             party = party_info[i]
             embed.add_field(
-                name=f"{party['rebirth']}차 환생 Lv.{party['level']} {party['nickname']}[{party['mooroong']}층]", value=f"{round(party['stat']['power'],2)}⛏ {party['stat']['hp']}⚡", inline=False)
+                name=f"{party['rebirth']}차 환생 Lv.{party['level']} {party['nickname']}[{party['mooroong']}층]", value=f"{round(party['stat']['power'],2)}⛏ {party['stat']['hp']}❤", inline=False)
         view = ui.View(timeout=None)
         button = ui.Button(label="지원하기", style=ButtonStyle.green, disabled=len(
             party_info.keys()) == 보스.value['user'])
         go = ui.Button(label="출발하기", style=ButtonStyle.red,
-                       disabled=len(party_info.keys()) != 보스.value['user'])
+                       disabled=len(party_info.keys()) != 보스.value['user'], custom_id="First")
         exit = ui.Button(label="탈퇴하기", style=ButtonStyle.red, row=2)
         kick = ui.Button(label="강퇴하기", style=ButtonStyle.red,
                          row=2, disabled=len(party_info.keys()) == 1)
@@ -2143,9 +2383,12 @@ async def info(interaction: Interaction, 유저: discord.Member = None):
         money = format(user['money'], ",")
         exp = format(user['exp'], ",")
         level_info_comma = format(level_info, ",")
-
+        if level_info == 0:
+            percent = 100
+        else:
+            percent = round(user['exp']/level_info*100)
         embed.add_field(
-            name=f"Lv. {user['level']} {exp}/{level_info_comma}({round(user['exp']/level_info*100)}%)", value=string_block, inline=True)
+            name=f"Lv. {user['level']} {exp}/{level_info_comma}({percent}%)", value=string_block, inline=True)
         embed.add_field(name=f"돈 : \n{money}💰", value="\u200b", inline=True)
         embed.add_field(
             name=f"무릉 : \n{user['moorong']}층", value="\u200b", inline=True)
