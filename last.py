@@ -1151,7 +1151,7 @@ async def show_collection(interaction: Interaction):
             ['collection', 'value', 'hp', 'power', 'str', 'crit', 'crit_damage', 'damage'], i)
         for j in ['hp', 'power', 'str', 'crit', 'crit_damage', 'damage']:
             if item[j] != 0:
-                if j == 'crit_damage' or j == 'damage':
+                if j=="crit" or j == 'crit_damage' or j == 'damage':
                     text += f"{translateName(j)} {'+' if item[j]>0 else ''}{item[j]}%  "
                 else:
                     text += f"{translateName(j)} {'+' if item[j]>0 else ''}{item[j]}  "
