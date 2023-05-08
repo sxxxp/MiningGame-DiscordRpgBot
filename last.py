@@ -1137,7 +1137,7 @@ async def show_collection(interaction: Interaction):
         return await interaction.response.send_message("`회원가입` 명령어로 먼저 가입을 해주세요.", ephemeral=True)
     cur = con.cursor()
     # 착용중인 아이템의 컬렉션들의 개수를 출력해 collection_effect의 value보다 크면 값 불러오기.
-    cur.execute("""SELECT A.collection,A.value,A.hp,A.power,A.str,A.crit,A.crit_damage/100,A.damage/100 FROM 
+    cur.execute("""SELECT A.collection,A.value,A.hp,A.power,A.str,A.crit,A.crit_damage,A.damage FROM 
                 collection_effect A JOIN 
                 (SELECT collection as col,COUNT(collection) as cnt FROM user_wear
                 WHERE wear=1 AND id=%s GROUP BY collection)
@@ -1151,7 +1151,10 @@ async def show_collection(interaction: Interaction):
             ['collection', 'value', 'hp', 'power', 'str', 'crit', 'crit_damage', 'damage'], i)
         for j in ['hp', 'power', 'str', 'crit', 'crit_damage', 'damage']:
             if item[j] != 0:
-                text += f"{translateName(j)} {'+' if item[j]>0 else ''}{item[j]}  "
+                if j == 'crit_damage' or j == 'damage':
+                    text += f"{translateName(j)} {'+' if item[j]>0 else ''}{item[j]}%  "
+                else:
+                    text += f"{translateName(j)} {'+' if item[j]>0 else ''}{item[j]}  "
         embed.add_field(
             name=f"{item['collection']} {item['value']}세트", value=text, inline=False)
     if not values:
