@@ -889,6 +889,7 @@ async def raid(interaction: Interaction, 보스: bossEnum):
             embed.add_field(name="잠시 후 경매 화면으로 넘어갑니다.", value="\u200b")
             await matcher.edit_original_response(content="", embed=embed, view=None)
             await asyncio.sleep(9)
+            is_up = {}
 
             async def up_callback(interaction: Interaction):
                 auctioner, price, index = interaction.data['custom_id']\
@@ -904,12 +905,15 @@ async def raid(interaction: Interaction, 보스: bossEnum):
                     return await interaction.delete_original_response()
                 await interaction.response.send_message("성공적으로 입찰했습니다.", ephemeral=True)
                 await interaction.delete_original_response()
-                global is_up
-                is_up = True
+                try:
+                    is_up[matcher.user.id]
+                except KeyError:
+                    is_up[matcher.user.id] = 1
+                else:
+                    is_up[matcher.user.id] += 1
                 await auction_callback(interaction, interaction.user.id, int(price)+500, int(index))
 
             async def auction_callback(interaction: Interaction, auctioner: int, price: int, index: int):
-                global is_up
                 embed = discord.Embed(title="경매")
                 util = getJson('./json/util.json')
                 embed.add_field(name="경매 물품", value="\u200b", inline=False)
@@ -937,16 +941,17 @@ async def raid(interaction: Interaction, 보스: bossEnum):
                 await matcher.edit_original_response(embed=embed, view=view)
                 await asyncio.sleep(10)
                 try:
-                    is_up
-                except NameError:
+                    is_up[matcher.user.id]
+                except KeyError:
                     if len(auction_amount)-1 > index:
                         await matcher.edit_original_response(embed=None, view=None, content="경매가 종료 되었습니다.")
                         await asyncio.sleep(5)
                         cur.close()
+                        del is_up[matcher.user.id]
                         return await matcher.delete_original_response()
                     return await auction_callback(interaction, 0, 3000, index+1)
-                if is_up:
-                    is_up = False
+                if is_up[matcher.user.id]:
+                    is_up[matcher.user.id] -= 1
                     return
                 if len(auction_amount)-1 > index:
                     getItem(
@@ -963,6 +968,7 @@ async def raid(interaction: Interaction, 보스: bossEnum):
                     await asyncio.sleep(5)
                     await matcher.delete_original_response()
                     cur.close()
+                    del is_up[matcher.user.id]
             await auction_callback(interaction, 0, 3000, 0)
 
         async def lose():
@@ -1151,7 +1157,7 @@ async def show_collection(interaction: Interaction):
             ['collection', 'value', 'hp', 'power', 'str', 'crit', 'crit_damage', 'damage'], i)
         for j in ['hp', 'power', 'str', 'crit', 'crit_damage', 'damage']:
             if item[j] != 0:
-                if j=="crit" or j == 'crit_damage' or j == 'damage':
+                if j == "crit" or j == 'crit_damage' or j == 'damage':
                     text += f"{translateName(j)} {'+' if item[j]>0 else ''}{item[j]}%  "
                 else:
                     text += f"{translateName(j)} {'+' if item[j]>0 else ''}{item[j]}  "
