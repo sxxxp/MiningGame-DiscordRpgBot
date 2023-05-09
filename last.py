@@ -12,9 +12,9 @@ import math
 import asyncio
 import json
 import os
-# from dotenv import load_dotenv
+from dotenv import load_dotenv
 
-# load_dotenv()
+load_dotenv()
 
 GUILD_ID = '934824600498483220'
 LEVEL_PER_STAT = 2
@@ -1223,7 +1223,7 @@ async def makeItem(interaction: Interaction, 종류: makeItemEnum):
                         label=f"Lv.{item[i]['level']} {i}", description=f"{item[i]['collection']} 세트", value=index)
                 elif category == "item":
                     option = SelectOption(
-                        label=i, description=f"{'거래가능' if utils[item[i]['code']]['trade'] else '거래불가'}", value=index)
+                        label=f"{i} {item[i]['amount']}개", description=f"{'거래가능' if utils[item[i]['code']]['trade'] else '거래불가'}", value=index)
                 elif category == "title":
                     option = SelectOption(
                         label=f"Lv.{item[i]['level']} {i}", description=item[i]['description'], value=index)
@@ -1256,7 +1256,10 @@ async def makeItem(interaction: Interaction, 종류: makeItemEnum):
                 for i in items[category][index]:  # 여기도 고칠필요 있음.
                     item = items[category][index][i]
                     name = i
-                    embed = discord.Embed(title=f"{i}[{item['rank']}]")
+                    text = f"{i}[{item['rank']}]"
+                    if category == "item":
+                        text += f" {item['amount']}개"
+                    embed = discord.Embed(title=text)
                     if not category == "item" and not category == "title":
                         embed.set_thumbnail(url=item['url'])
                     if category == "title":
@@ -1374,7 +1377,8 @@ async def makeItem(interaction: Interaction, 종류: makeItemEnum):
                             if getSuccess(percent, 100):
                                 real_cnt += 1
 
-                        getItem(item['code'], interaction.user.id, real_cnt)
+                        getItem(item['code'], interaction.user.id,
+                                real_cnt*item['amount'])
                         cur.close()
                         return await interaction.response.edit_message(content=f"{cnt[interaction.user.id]}회 중 {real_cnt}번 성공!", embed=None, view=None)
 
@@ -1382,7 +1386,7 @@ async def makeItem(interaction: Interaction, 종류: makeItemEnum):
                 backbutton.callback = back_callback
                 if category == "item":  # 아이템일때 개수변경 버튼 추가
                     embed.add_field(
-                        name=f"제작개수 : {cnt[interaction.user.id]}", value='\u200b', inline=False)
+                        name=f"제작개수 : {cnt[interaction.user.id]*item['amount']}", value='\u200b', inline=False)
                     amountbutton = ui.Button(label="개수 변경", row=2)
                     view.add_item(amountbutton)
                     amountbutton.callback = amount_callback
