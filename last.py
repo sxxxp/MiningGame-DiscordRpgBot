@@ -19,7 +19,7 @@ import os
 GUILD_ID = '934824600498483220'
 LEVEL_PER_STAT = 2
 REBIRTH_PER_STAT = 50
-MAX_REBIRTH = 2
+MAX_REBIRTH = 3
 MAX_LEVEL = 70
 KST = datetime.timezone(datetime.timedelta(hours=9))
 ticket = {
@@ -137,7 +137,7 @@ class makeItemEnum(Enum):
 class bossEnum(Enum):
     단단한돌3인 = {'name': '단단한돌', 'boss': 1, 'id': 1, 'user': 3, 'level': 30}
     단단한돌2인 = {'name': '단단한돌', 'boss': 1, 'id': 1, 'user': 2, 'level': 35}
-    단단한돌1인 = {'name': '단단한돌', 'boss': 1, 'id': 1, 'user': 1, 'level': 50}
+    단단한돌1인 = {'name': '단단한돌', 'boss': 1, 'id': 1, 'user': 1, 'level': 35}
 
 
 class miningEnum(Enum):
@@ -600,13 +600,15 @@ def getStatus(id: int):
         "SELECT power,hp*3,str/10,crit,crit_damage/100,point FROM user_stat WHERE id=%s", id)
     stat = makeDictionary(['power', 'hp', 'str', 'crit',
                           'crit_damage', 'point'], cur.fetchone())
-    final = {'power': 0, 'hp': 25, "str": 0, "power_stat": 0,
+    final = {'power': 0, 'hp': 25, "str": 0, "power_stat": 0, "power_else": 0, "hp_stat": 0,
              'damage': 0, 'crit': 0, 'crit_damage': 0, 'maxhp': 0, 'point': 0, 'title': ''}
     for key, value in chain(wear.items(), weapon.items(), option.items(), stat.items(), collection.items(), title.items()):
         if value:
             final[key] += value
     final['maxhp'] = final['hp']
+    final['hp_stat'] = stat['hp']
     final['power_stat'] = stat['power']
+    final['power_else'] = final['power']
     final['power'] *= final['damage']
     cur.close()
     return final
@@ -690,10 +692,11 @@ async def rebirth(interaction: Interaction):
             "UPDATE user_weapon SET wear=0 WHERE wear =1 AND id = %s AND `level` > 15", interaction.user.id)
         cur.execute(
             "UPDATE user_title SET wear=0 WHERE wear =1 AND id = %s AND `level` > 15", interaction.user.id)
-        cur.execute("UPDATE user_stat SET power=1,hp=5,str=5,crit=5,crit_damage=50,point = %s WHERE id = %s", ((
-            rebirth+1)*REBIRTH_PER_STAT+LEVEL_PER_STAT*15, interaction.user.id))
+        cur.execute("UPDATE point = point+%s WHERE id = %s",
+                    (REBIRTH_PER_STAT, interaction.user.id))
+        getItem(8, interaction.user.id, 1)
         con.commit()
-        await interaction.response.send_message(f"{rebirth+1}차 환생에 성공했습니다.", ephemeral=True)
+        await interaction.response.send_message(f"{rebirth+1}차 환생에 성공했습니다. 추가스텟:{REBIRTH_PER_STAT}\n스텟 초기화 스크롤 1개를 받았습니다.", ephemeral=True)
     else:
         await interaction.response.send_message("환생에 실패했습니다.", ephemeral=True)
 
@@ -1386,7 +1389,7 @@ async def makeItem(interaction: Interaction, 종류: makeItemEnum):
                 backbutton.callback = back_callback
                 if category == "item":  # 아이템일때 개수변경 버튼 추가
                     embed.add_field(
-                        name=f"제작개수 : {cnt[interaction.user.id]*item['amount']}", value='\u200b', inline=False)
+                        name=f"제작개수 : {cnt[interaction.user.id]*item['amount']}개", value='\u200b', inline=False)
                     amountbutton = ui.Button(label="개수 변경", row=2)
                     view.add_item(amountbutton)
                     amountbutton.callback = amount_callback
@@ -2407,10 +2410,12 @@ async def info(interaction: Interaction, 유저: discord.Member = None):
             name=f"무릉 : \n{user['moorong']}층", value="\u200b", inline=True)
         embed.add_field(
             name=f"데미지 : \n{round(stat['power'],2)}", value='\u200b')
-        embed.add_field(name=f"힘 : \n{stat['power_stat']}", value='\u200b')
+        embed.add_field(
+            name=f"힘 : \n{stat['power_stat']+stat['power_else']}({stat['power_stat']}+{stat['power_else']})", value='\u200b')
         # embed.add_field(
         #     name=f"데미지배수 : \nx{round(stat['damage'],2)}", value="\u200b")
-        embed.add_field(name=f"체력 : \n{stat['hp']}", value='\u200b')
+        embed.add_field(
+            name=f"체력 : \n{stat['hp']}({stat['hp_stat']}+{stat['hp']-stat['hp_stat']})", value='\u200b')
         embed.add_field(name=f"중량 : \n{round(stat['str'],3)}", value='\u200b')
         embed.add_field(
             name=f"크리티컬 확률 : \n{round(stat['crit'])}%", value='\u200b')
