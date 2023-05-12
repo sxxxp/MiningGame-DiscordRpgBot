@@ -17,9 +17,9 @@ import os
 # load_dotenv()
 
 GUILD_ID = '934824600498483220'
-LEVEL_PER_STAT = 2
-REBIRTH_PER_STAT = 50
-MAX_REBIRTH = 3
+STAT_PER_LEVEL = 2
+STAT_PER_REBIRTH = 50
+MAX_REBIRTH = 5
 MAX_LEVEL = 70
 KST = datetime.timezone(datetime.timedelta(hours=9))
 ticket = {
@@ -431,10 +431,9 @@ def block_exp(rebirth: int, level: int, exp: int):
     name = ["0_", "1_", "2_", "3_", "4_", "5_", "6_", "7_", "8_", "9_", "10"]
     block = [discord.utils.get(guild.emojis, name=i) for i in name]
     level_info: dict = getJson('./json/level.json')
-    if level == MAX_LEVEL:
+    percent = round(exp/level_info[str(rebirth)][str(level)]*100)
+    if percent > 100:
         percent = 100
-    else:
-        percent = round(exp/level_info[str(rebirth)][str(level)]*100)
     string = ''
     cnt = 0
     for _ in range(int(percent/10)):
@@ -476,18 +475,27 @@ def is_levelup(rebirth: int, level: int, exp: int, id: int):
 
     `return 레벨업한 숫자`
     '''
-    if level == MAX_LEVEL:
-        return
+
     level_info = getJson('./json/level.json')
     num = 0
+    cur = con.cursor()
     while level_info[str(rebirth)][str(level+num)] <= exp:
         exp -= level_info[str(rebirth)][str(level+num)]
         num += 1
-    cur = con.cursor()
-    cur.execute(
-        "UPDATE user_info SET level = level + %s , exp = %s WHERE id = %s", (num, exp, id))
-    cur.execute(
-        "UPDATE user_stat SET point = point + %s WHERE id = %s", (num*LEVEL_PER_STAT, id))
+        if level+num >= MAX_LEVEL+1 and rebirth != MAX_REBIRTH:
+            cur.execute(
+                "UPDATE user_info SET exp = %s, rebirth=rebirth+1 WHERE id = %s", (exp, id))
+            cur.execute(
+                "UPDATE user_stat SET point = point + %s WHERE id = %s", (STAT_PER_REBIRTH, id))
+            getItem(8, id, 1)
+            cur.close()
+            con.commit()
+            return MAX_LEVEL+1
+    if num > 0:
+        cur.execute(
+            "UPDATE user_info SET level = level + %s , exp = %s WHERE id = %s", (num, exp, id))
+        cur.execute(
+            "UPDATE user_stat SET point = point + %s WHERE id = %s", (num*STAT_PER_LEVEL, id))
     cur.close()
     con.commit()
 
@@ -609,7 +617,8 @@ def getStatus(id: int):
     final['hp_stat'] = stat['hp']
     final['power_stat'] = stat['power']
     final['power_else'] = final['power']
-    final['power'] *= final['damage']
+    if final['damage'] != 0:
+        final['power'] *= final['damage']
     cur.close()
     return final
 
@@ -675,30 +684,6 @@ def setup():
     cur.execute("""CREATE TABLE IF NOT EXISTS boss
                 (id INT PRIMARY KEY,name TEXT,power INT,hp INT,gold INT, util_code TEXT,util_percent TEXT,util_amount TEXT,auction_code TEXT, auction_percent TEXT, auction_amount TEXT,url TEXT)""")
     cur.close()
-
-
-@tree.command(name="환생", description="70레벨 달성시")
-async def rebirth(interaction: Interaction):
-    cur = con.cursor()
-    cur.execute("SELECT rebirth,level FROM user_info WHERE id = %s",
-                interaction.user.id)
-    rebirth, level = cur.fetchone()
-    if level >= 70 and rebirth != MAX_REBIRTH:
-        cur.execute(
-            "UPDATE user_info SET rebirth= rebirth + 1 , level=15,exp=0 WHERE id = %s", interaction.user.id)
-        cur.execute(
-            "UPDATE user_wear SET wear=0 WHERE wear =1 AND id = %s AND `level` > 15", interaction.user.id)
-        cur.execute(
-            "UPDATE user_weapon SET wear=0 WHERE wear =1 AND id = %s AND `level` > 15", interaction.user.id)
-        cur.execute(
-            "UPDATE user_title SET wear=0 WHERE wear =1 AND id = %s AND `level` > 15", interaction.user.id)
-        cur.execute("UPDATE point = point+%s WHERE id = %s",
-                    (REBIRTH_PER_STAT, interaction.user.id))
-        getItem(8, interaction.user.id, 1)
-        con.commit()
-        await interaction.response.send_message(f"{rebirth+1}차 환생에 성공했습니다. 추가스텟:{REBIRTH_PER_STAT}\n스텟 초기화 스크롤 1개를 받았습니다.", ephemeral=True)
-    else:
-        await interaction.response.send_message("환생에 실패했습니다.", ephemeral=True)
 
 
 @tree.command(name="레이드초기화", description="레이드초기화")
@@ -1192,7 +1177,7 @@ async def reset_stat(interaction: Interaction):
                     interaction.user.id)
         level, rebirth = cur.fetchone()
         cur.execute("UPDATE user_stat SET power = 1 , str = 5, hp = 5, crit_damage=50 ,point = %s WHERE id = %s",
-                    (level*LEVEL_PER_STAT+rebirth*REBIRTH_PER_STAT, interaction.user.id))
+                    (level*STAT_PER_LEVEL+rebirth*STAT_PER_REBIRTH, interaction.user.id))
         cur.close()
         con.commit()
         await interaction.response.send_message("성공적으로 스텟을 초기화 했습니다.", ephemeral=True)
@@ -2558,6 +2543,27 @@ async def inventory(interaction: Interaction, 종류: makeItemEnum):
                     embed.add_field(
                         name=f"{i['name']} : {title[i['value']]}({'+' if title[i['value']]-gap[i['value']]>0 else ''}{title[i['value']]-gap[i['value']]})", value="\u200b")
 
+        async def delete_callback(interaction: Interaction):
+            class is_delete(ui.Modal, title="아이템버리기"):
+                answer = ui.TextInput(
+                    label="아이템을 정말로 버리겠습니까?", placeholder="아무 글자나 하나 적어주세요.", max_length=1)
+
+                async def on_submit(self, interaction: Interaction):
+                    if self.answer.value:
+                        if category == "wear":
+                            id = wear['item_id']
+                        elif category == "weapon":
+                            id = weapon['item_id']
+                        elif category == "title":
+                            id = title["item_id"]
+                        cur.execute(
+                            f"DELETE FROM user_{category} WHERE item_id=%s", (id))
+                        con.commit()
+                        await interaction.response.send_message("성공적으로 아이템이 삭제되었습니다.", ephemeral=True)
+                        await asyncio.sleep(5)
+                        await interaction.delete_original_response()
+            await interaction.response.send_modal(is_delete())
+
         async def equip_callback(interaction: Interaction):  # 착용하기 버튼 클릭시
             if category == "wear":
                 cur.execute("UPDATE user_wear SET wear = 0 WHERE part = %s AND wear = 1 AND id = %s",
@@ -2588,12 +2594,14 @@ async def inventory(interaction: Interaction, 종류: makeItemEnum):
         elif category == "title":
             equip = ui.Button(label="착용하기", style=ButtonStyle.green,
                               disabled=level < title['level'])
-        back = ui.Button(label="돌아가기", style=ButtonStyle.red)
+        back = ui.Button(label="돌아가기")
+        delete_button = ui.Button(label="버리기", style=ButtonStyle.red, row=2)
         view.add_item(equip)
         view.add_item(back)
-
+        view.add_item(delete_button)
         equip.callback = equip_callback
         back.callback = setup
+        delete_button.callback = delete_callback
         await interaction.response.edit_message(embed=embed, view=view)
 
     async def checkout_callback(interaction: Interaction):  # 선택하기 버튼 클릭시
@@ -2923,10 +2931,14 @@ async def mining(interaction: Interaction, 광산: miningEnum):
             num = is_levelup(rebirth, level, exp, interaction.user.id)
             embed = discord.Embed(title="보상 요약")
             embed.add_field(
-                name=f"{enemy['exp']} 경험치를 획득했습니다.", value="\u200b", inline=False)
+                name=f"{format(int(enemy['exp']),',')} 경험치를 획득했습니다.", value="\u200b", inline=False)
             if num:
-                embed.add_field(
-                    name=f"{level+num} 레벨이 되었습니다.", value="\u200b", inline=False)
+                if num == MAX_LEVEL+1:
+                    embed.add_field(
+                        name=f"{rebirth+1}차 환생이 되었습니다.", value='\u200b', inline=False)
+                else:
+                    embed.add_field(
+                        name=f"{level+num} 레벨이 되었습니다.", value="\u200b", inline=False)
             view = ui.View(timeout=None)
             embed.add_field(name="광석 :", value='\u200b', inline=False)
             for i in range(len(item_percent)):
