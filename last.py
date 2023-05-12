@@ -608,13 +608,14 @@ def getStatus(id: int):
         "SELECT power,hp*3,str/10,crit,crit_damage/100,point FROM user_stat WHERE id=%s", id)
     stat = makeDictionary(['power', 'hp', 'str', 'crit',
                           'crit_damage', 'point'], cur.fetchone())
-    final = {'power': 0, 'hp': 25, "str": 0, "power_stat": 0, "power_else": 0, "hp_stat": 0,
+    final = {'power': 0, 'hp': 25, "str": 0, "str_stat": 0, "power_stat": 0, "power_else": 0, "hp_stat": 0,
              'damage': 0, 'crit': 0, 'crit_damage': 0, 'maxhp': 0, 'point': 0, 'title': ''}
     for key, value in chain(wear.items(), weapon.items(), option.items(), stat.items(), collection.items(), title.items()):
         if value:
             final[key] += value
     final['maxhp'] = final['hp']
     final['hp_stat'] = stat['hp']
+    final['str_stat'] = stat['str']
     final['power_stat'] = stat['power']
     final['power_else'] = final['power']
     if final['damage'] != 0:
@@ -2401,7 +2402,8 @@ async def info(interaction: Interaction, 유저: discord.Member = None):
         #     name=f"데미지배수 : \nx{round(stat['damage'],2)}", value="\u200b")
         embed.add_field(
             name=f"체력 : \n{stat['hp']}({stat['hp_stat']}+{stat['hp']-stat['hp_stat']})", value='\u200b')
-        embed.add_field(name=f"중량 : \n{round(stat['str'],3)}", value='\u200b')
+        embed.add_field(
+            name=f"중량 : \n{round(stat['str'],1)}({stat['str_stat']}+{stat['str']-stat['str_stat']})", value='\u200b')
         embed.add_field(
             name=f"크리티컬 확률 : \n{round(stat['crit'])}%", value='\u200b')
         embed.add_field(
