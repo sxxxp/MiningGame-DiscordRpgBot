@@ -12,9 +12,9 @@ import math
 import asyncio
 import json
 import os
-# from dotenv import load_dotenv
+from dotenv import load_dotenv
 
-# load_dotenv()
+load_dotenv()
 
 GUILD_ID = '934824600498483220'
 STAT_PER_LEVEL = 2
@@ -67,7 +67,7 @@ class MyClient(discord.Client):
 
     async def change_message(self):
         while not client.is_closed():
-            for i in ['개발', '0.0.1a버전 관리', '버그 제보 부탁']:
+            for i in ['개발', '0.2.0a버전 관리', '버그 제보 부탁']:
                 await client.change_presence(status=discord.Status.online, activity=discord.Game(i))
                 await asyncio.sleep(5)
 
@@ -369,7 +369,7 @@ def getWeapon(item: dict, id: int):
     cur.close()
 
 
-def getTitle(item: dict, id: int):
+def etTitle(item: dict, id: int):
     '''
     칭호 정보 만들기
     ---------------
@@ -608,7 +608,7 @@ def getStatus(id: int):
         "SELECT power,hp*3,str/10,crit,crit_damage/100,point FROM user_stat WHERE id=%s", id)
     stat = makeDictionary(['power', 'hp', 'str', 'crit',
                           'crit_damage', 'point'], cur.fetchone())
-    final = {'power': 0, 'hp': 25, "str": 0, "str_stat": 0, "power_stat": 0, "power_else": 0, "hp_stat": 0,
+    final = {'power': 0, 'hp': 25, "str": 0, "str_stat": 0, "power_stat": 0, "power_else": 0, "hp_stat": 0, "crit_damage_stat": 0,
              'damage': 0, 'crit': 0, 'crit_damage': 0, 'maxhp': 0, 'point': 0, 'title': ''}
     for key, value in chain(wear.items(), weapon.items(), option.items(), stat.items(), collection.items(), title.items()):
         if value:
@@ -617,6 +617,7 @@ def getStatus(id: int):
     final['hp_stat'] = stat['hp']
     final['str_stat'] = stat['str']
     final['power_stat'] = stat['power']
+    final['crit_damage_stat'] = stat['crit_damage']
     final['power_else'] = final['power']
     if final['damage'] != 0:
         final['power'] *= final['damage']
@@ -2403,11 +2404,11 @@ async def info(interaction: Interaction, 유저: discord.Member = None):
         embed.add_field(
             name=f"체력 : \n{stat['hp']}({stat['hp_stat']}+{stat['hp']-stat['hp_stat']})", value='\u200b')
         embed.add_field(
-            name=f"중량 : \n{round(stat['str'],1)}({stat['str_stat']}+{stat['str']-stat['str_stat']})", value='\u200b')
+            name=f"중량 : \n{round(stat['str'],1)}({round(stat['str_stat'],1)}+{round(stat['str']-stat['str_stat'],1)})", value='\u200b')
         embed.add_field(
             name=f"크리티컬 확률 : \n{round(stat['crit'])}%", value='\u200b')
         embed.add_field(
-            name=f"크리티컬 데미지 : \n{round(stat['crit_damage']*100)}%", value='\u200b')
+            name=f"크리티컬 데미지 : \n{round(stat['crit_damage']*100)}({round(stat['crit_damage_stat']*100)}+{round(stat['crit_damage']-stat['crit_damage_stat'])})%", value='\u200b')
         embed.add_field(
             name=f"스텟 포인트 : {stat['point']}", value='\u200b', inline=False)
         embed.set_footer(text=f"생성일자 : {user['create_at']}")
@@ -2417,6 +2418,28 @@ async def info(interaction: Interaction, 유저: discord.Member = None):
             await interaction.edit_original_response(content="", embed=embed, view=view)
     await interaction.response.send_message("정보 로딩중...", ephemeral=True)
     await setting(interaction)
+
+
+@tree.command(name="아이템정보", description="아이템정보")
+async def items(interaction: Interaction, 유저: discord.Member = None):
+    if not 유저:
+        id = interaction.user.id
+    else:
+        id = 유저.id
+    cur = con.cursor()
+    cur.execute(
+        "SELECT name,rank,upgrade,part FROM user_wear WHERE id = %s AND wear = 1", (id))
+    user_item = cur.fetchall()
+    cur.execute(
+        "SELECT name,rank,upgrade FROM user_weapon WHERE id = %s AND wear = 1", (id))
+    user_weapon = cur.fetchone()
+    embed = discord.Embed(title="유저 아이템")
+    embed.add_field(
+        name=f"무기", value=f"{user_weapon[0]}[{user_weapon[1]}] +{user_weapon[2]}")
+    for name, rank, upgrade, part in user_item:
+        embed.add_field(name=f"{getPart(part)}",
+                        value=f"{name}[{rank}] +{upgrade}")
+    await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
 @tree.command(name="인벤토리", description="인벤토리")
