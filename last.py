@@ -12,14 +12,14 @@ import math
 import asyncio
 import json
 import os
-# from dotenv import load_dotenv
+from dotenv import load_dotenv
 
-# load_dotenv()
+load_dotenv()
 
-GUILD_ID = '934824600498483220'
+GUILD_ID = '9134824600498483220'
 STAT_PER_LEVEL = 2
 STAT_PER_REBIRTH = 50
-MAX_REBIRTH = 9
+MAX_REBIRTH = 10
 MAX_LEVEL = 70
 KST = datetime.timezone(datetime.timedelta(hours=9))
 ticket = {
@@ -53,12 +53,12 @@ class MyClient(discord.Client):
                 cur.execute(
                     "INSERT INTO shop(item1,item2,item3,item4,item5,item6,id) VALUES(%s,%s,%s,%s,%s,%s,%s)",
                     ('3 -1 250', "5 10 350", "6 15 75", "7 5 1000", "8 1 30000", "9 1 50000", i[0]))
-            cur.execute("SELECT * FROM quest WHERE id = %s", i[0])
-            if cur.fetchone():
-                cur.execute("UPDATE quest SET kill1='any 15 0', get1='any 20 0',  ")
+            # cur.execute("SELECT * FROM quest WHERE id = %s", i[0])
+            # if cur.fetchone():
+            #     cur.execute("UPDATE quest SET kill1='any 15 0', get1='any 20 0',  ")
             if weekday == 4:
                 setItem(4, i[0], 1)
-                cur.execute("UPDATE user_boss SET boss1=0")
+                cur.execute("UPDATE user_boss SET boss1=0")     
         con.commit()
         cur.close()
 
@@ -434,7 +434,10 @@ def block_exp(rebirth: int, level: int, exp: int):
     name = ["0_", "1_", "2_", "3_", "4_", "5_", "6_", "7_", "8_", "9_", "10"]
     block = [discord.utils.get(guild.emojis, name=i) for i in name]
     level_info: dict = getJson('./json/level.json')
-    percent = round(exp/level_info[str(rebirth)][str(level)]*100)
+    if rebirth==MAX_REBIRTH:
+        percent=100
+    else:
+        percent = round(exp/level_info[str(rebirth)][str(level)]*100)
     if percent > 100:
         percent = 100
     string = ''
@@ -478,7 +481,8 @@ def is_levelup(rebirth: int, level: int, exp: int, id: int):
 
     `return 레벨업한 숫자`
     '''
-
+    if rebirth == MAX_REBIRTH:
+        return 0
     level_info = getJson('./json/level.json')
     num = 0
     cur = con.cursor()
@@ -707,6 +711,7 @@ async def int_book(interaction:Interaction):
         return await interaction.delete_original_response()
     cur=con.cursor()
     cur.execute("UPDATE user_info SET exp = exp + (level+rebirth*10)*750 WHERE id = %s",interaction.user.id)
+    con.commit()
     cur.execute("SELECT level,rebirth,exp FROM user_info WHERE id = %s",interaction.user.id)
     level, rebirth, exp = cur.fetchone()
     num = is_levelup(rebirth,level,exp,interaction.user.id)
@@ -718,6 +723,7 @@ async def int_book(interaction:Interaction):
         await interaction.response.send_message("성공적으로 사용 되었습니다!",ephemeral=True)
     getItem(16,interaction.user.id,-1)
     await asyncio.sleep(3)
+    cur.close()
     return await interaction.delete_original_response()
 
 
@@ -2423,19 +2429,19 @@ async def info(interaction: Interaction, 유저: discord.Member = None):
         embed.add_field(
             name=f"무릉 : \n{user['moorong']}층", value="\u200b", inline=True)
         embed.add_field(
-            name=f"데미지 : \n{round(stat['power'],2)}", value='\u200b')
+            name=f"데미지 : \n{format(round(stat['power'],2),',')}", value='\u200b')
         embed.add_field(
-            name=f"힘 : \n{stat['power_stat']+stat['power_else']}({stat['power_stat']}+{stat['power_else']})", value='\u200b')
+            name=f"힘 : \n{format(stat['power_stat']+stat['power_else'],',')}({format(stat['power_stat'],',')}+{format(stat['power_else'],',')})", value='\u200b')
         # embed.add_field(
         #     name=f"데미지배수 : \nx{round(stat['damage'],2)}", value="\u200b")
         embed.add_field(
-            name=f"체력 : \n{stat['hp']}({stat['hp_stat']}+{stat['hp']-stat['hp_stat']})", value='\u200b')
+            name=f"체력 : \n{format(stat['hp'],',')}({format(stat['hp_stat'],',')}+{format(stat['hp']-stat['hp_stat'],',')})", value='\u200b')
         embed.add_field(
-            name=f"중량 : \n{round(stat['str'],1)}({round(stat['str_stat'],1)}+{round(stat['str']-stat['str_stat'],1)})", value='\u200b')
+            name=f"중량 : \n{format(round(stat['str'],1),',')}({format(round(stat['str_stat'],1),',')}+{format(round(stat['str']-stat['str_stat'],1),',')})", value='\u200b')
         embed.add_field(
-            name=f"크리티컬 확률 : \n{round(stat['crit'])}%", value='\u200b')
+            name=f"크리티컬 확률 : \n{format(round(stat['crit']),',')}%", value='\u200b')
         embed.add_field(
-            name=f"크리티컬 데미지 : \n{round(stat['crit_damage']*100)}({round(stat['crit_damage_stat']*100)}+{round(stat['crit_damage']-stat['crit_damage_stat'])})%", value='\u200b')
+            name=f"크리티컬 데미지 : \n{format(round(stat['crit_damage']*100),',')}({format(round(stat['crit_damage_stat']*100),',')}+{format(round(stat['crit_damage']*100-stat['crit_damage_stat']*100),',')})%", value='\u200b')
         embed.add_field(
             name=f"스텟 포인트 : {stat['point']}", value='\u200b', inline=False)
         embed.set_footer(text=f"생성일자 : {user['create_at']}")
@@ -2513,11 +2519,11 @@ async def inventory(interaction: Interaction, 종류: makeItemEnum):
             embed = discord.Embed(
                 title=f"Lv.{wear['level']} {wear['name']}[{wear['rank']}] +{wear['upgrade']} ({'거래가능' if wear['trade'] else '거래불가'}) {'착용중' if wear['wear'] else ''}")
             embed.add_field(
-                name=f"힘 : {wear['power']}({'+' if wear['power']-gap['power']>0 else ''}{wear['power']-gap['power']})", value="\u200b")
+                name=f"힘 : {format(wear['power'],',')}({'+' if wear['power']-gap['power']>0 else ''}{format(wear['power']-gap['power'],',')})", value="\u200b")
             embed.add_field(
-                name=f"체력 : {wear['hp']}({'+' if wear['hp']-gap['hp']>0 else ''}{wear['hp']-gap['hp']})", value='\u200b')
+                name=f"체력 : {format(wear['hp'],',')}({'+' if wear['hp']-gap['hp']>0 else ''}{format(wear['hp']-gap['hp'],',')})", value='\u200b')
             embed.add_field(
-                name=f"중량 : {wear['str']}({'+' if wear['str']-gap['str']>0 else ''}{wear['str']-gap['str']})", value='\u200b')
+                name=f"중량 : {format(wear['str'],',')}({'+' if wear['str']-gap['str']>0 else ''}{format(wear['str']-gap['str'],',')})", value='\u200b')
             embed.add_field(
                 name=f"착용부위 : {getPart(wear['part'])}", value='\u200b')
             embed.add_field(name=f"{wear['collection']} 세트", value='\u200b')
@@ -2549,9 +2555,9 @@ async def inventory(interaction: Interaction, 종류: makeItemEnum):
             embed.set_footer(text=f"아이템코드 : {weapon['item_id']}")
             embed.set_thumbnail(url=weapon['url'])
             embed.add_field(
-                name=f"힘 : {weapon['power']}({'+' if weapon['power']-gap['power']>0 else ''}{weapon['power']-gap['power']})", value="\u200b")
+                name=f"힘 : {format(weapon['power'],',')}({'+' if weapon['power']-gap['power']>0 else ''}{format(weapon['power']-gap['power'],',')})", value="\u200b")
             embed.add_field(
-                name=f"데미지 : {round(weapon['damage'],2)}({'+' if weapon['damage']-gap['damage']>0 else ''}{round(weapon['damage']-gap['damage'],2)})", value='\u200b')
+                name=f"데미지 : {round(weapon['damage'],2)}({'+' if weapon['damage']-gap['damage']>0 else ''}{format(round(weapon['damage']-gap['damage'],2),',')})", value='\u200b')
             embed.add_field(name=f"옵션 : {weapon['option']}", value='\u200b')
 
         elif category == "title":  # 칭호일때
@@ -2585,15 +2591,16 @@ async def inventory(interaction: Interaction, 종류: makeItemEnum):
             for i in [{"name": "힘", "value": "power"}, {"name": "체력", "value": "hp"}, {"name": "중량", "value": "str"}, {"name": "크리티컬 확률", "value": "crit"}, {"name": "크리티컬 데미지", "value": "crit_damage"}, {"name": "데미지", "value": "damage"}]:
                 if i['value'] == "crit_damage" or i['value'] == "damage":
                     value = round(title[i['value']]*100, 0)
+                    display_value = format(value,',')
                     embed.add_field(
-                        name=f"{i['name']} : {f'{value}%'}({'+' if title[i['value']]-gap[i['value']]>0 else ''}{round(value-gap[i['value']],0)}%)", value="\u200b")
+                        name=f"{i['name']} : {f'{display_value}%'}({'+' if title[i['value']]-gap[i['value']]>0 else ''}{format(round(value-gap[i['value']],0),',')}%)", value="\u200b")
                 elif i['value'] == "crit":
                     embed.add_field(
-                        name=f"{i['name']} : {title[i['value']]}%({'+' if title[i['value']]-gap[i['value']]>0 else ''}{title[i['value']]-gap[i['value']]}%)", value="\u200b")
+                        name=f"{i['name']} : {format(title[i['value']],',')}%({'+' if title[i['value']]-gap[i['value']]>0 else ''}{format(title[i['value']]-gap[i['value']],',')}%)", value="\u200b")
 
                 else:
                     embed.add_field(
-                        name=f"{i['name']} : {title[i['value']]}({'+' if title[i['value']]-gap[i['value']]>0 else ''}{title[i['value']]-gap[i['value']]})", value="\u200b")
+                        name=f"{i['name']} : {format(title[i['value']],',')}({'+' if title[i['value']]-gap[i['value']]>0 else ''}{format(title[i['value']]-gap[i['value']],',')})", value="\u200b")
 
         async def delete_callback(interaction: Interaction):
             class is_delete(ui.Modal, title="아이템버리기"):
@@ -2984,7 +2991,7 @@ async def mining(interaction: Interaction, 광산: miningEnum):
             embed = discord.Embed(title="보상 요약")
             embed.add_field(
                 name=f"{format(int(enemy['exp']),',')} 경험치를 획득했습니다.", value="\u200b", inline=False)
-            if num:
+            if num and num!=-1:
                 if num == MAX_LEVEL+1:
                     embed.add_field(
                         name=f"{rebirth+1}차 환생이 되었습니다.", value='\u200b', inline=False)
