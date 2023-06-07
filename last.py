@@ -702,9 +702,11 @@ async def int_book(interaction:Interaction):
         return await interaction.response.send_message(f"`회원가입` 명령어로 먼저 회원가입을 해주세요.", ephemeral=True)
     amount = isExistItem(interaction.user.id,16)
     if amount <=0:
-        return await interaction.response.send_message(f"지식의 서가 없습니다.",ephemeral=True)
+        await interaction.response.send_message(f"지식의 서가 없습니다.",ephemeral=True)
+        await asyncio.sleep(3)
+        return await interaction.delete_original_response()
     cur=con.cursor()
-    cur.execute("UPDATE user_info SET exp = exp + (level+rebirth*10)*500 WHERE id = %s",interaction.user.id)
+    cur.execute("UPDATE user_info SET exp = exp + (level+rebirth*10)*750 WHERE id = %s",interaction.user.id)
     cur.execute("SELECT level,rebirth,exp FROM user_info WHERE id = %s",interaction.user.id)
     level, rebirth, exp = cur.fetchone()
     num = is_levelup(rebirth,level,exp,interaction.user.id)
@@ -715,6 +717,8 @@ async def int_book(interaction:Interaction):
     else:
         await interaction.response.send_message("성공적으로 사용 되었습니다!",ephemeral=True)
     getItem(16,interaction.user.id,-1)
+    await asyncio.sleep(3)
+    return await interaction.delete_original_response()
 
 
 @tree.command(name="레이드", description="레이드")
