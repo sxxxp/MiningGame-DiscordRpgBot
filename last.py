@@ -696,7 +696,7 @@ async def raid_clear(interaction: Interaction, 유저: str):
     if interaction.user.id == 432066597591449600:
         raid_dic[int(유저)] = False
 
-@tree.command(name="지식의 서",description="지식의 서 사용이 가능하다.")
+@tree.command(name="지식의서",description="지식의 서 사용이 가능하다.")
 async def int_book(interaction:Interaction):
     if not authorize(interaction.user.id):
         return await interaction.response.send_message(f"`회원가입` 명령어로 먼저 회원가입을 해주세요.", ephemeral=True)
