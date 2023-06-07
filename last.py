@@ -1662,8 +1662,8 @@ async def shop(interaction: Interaction):
             price = util['price']*item[i]
             prices += price
             embed.add_field(
-                name=f"[{i}]{util['name']} {item[i]}개", value=f"{price} 골드", inline=False)
-        embed.set_footer(text=f"총 : {prices} 골드")
+                name=f"[{i}]{util['name']} {item[i]}개", value=f"{format(price,',')} 골드", inline=False)
+        embed.set_footer(text=f"총 : {format(prices,',')} 골드")
 
         async def submit_callback(interaction: Interaction):
             cur.execute("UPDATE user_info SET money = money + %s WHERE id = %s",
