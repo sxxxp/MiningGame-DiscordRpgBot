@@ -704,14 +704,16 @@ async def int_book(interaction:Interaction):
     if amount <=0:
         return await interaction.response.send_message(f"지식의 서가 없습니다.",ephemeral=True)
     cur=con.cursor()
-    cur.execute("UPDATE user_info SET exp = exp + (level+rebirth*10)*100 WHERE id = %s",interaction.user.id)
+    cur.execute("UPDATE user_info SET exp = exp + (level+rebirth*10)*500 WHERE id = %s",interaction.user.id)
     cur.execute("SELECT level,rebirth,exp FROM user_info WHERE id = %s",interaction.user.id)
     level, rebirth, exp = cur.fetchone()
     num = is_levelup(rebirth,level,exp,interaction.user.id)
     if num == MAX_LEVEL+1:
         await interaction.response.send_message(f"{rebirth+1}차 환생 달성!",ephemeral=True)
-    else:
+    elif num > 0:
         await interaction.response.send_message(f"{level+num}레벨 달성!",ephemeral=True)
+    else:
+        await interaction.response.send_message("성공적으로 사용 되었습니다!",ephemeral=True)
     getItem(16,interaction.user.id,-1)
 
 
