@@ -19,7 +19,7 @@ import os
 GUILD_ID = '934824600498483220'
 STAT_PER_LEVEL = 2
 STAT_PER_REBIRTH = 50
-MAX_REBIRTH = 5
+MAX_REBIRTH = 9
 MAX_LEVEL = 70
 KST = datetime.timezone(datetime.timedelta(hours=9))
 ticket = {
