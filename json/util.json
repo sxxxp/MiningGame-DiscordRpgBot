@@ -86,22 +86,36 @@
   "13": {
     "name": "지옥 수문장의 징표",
     "description": "지옥 수문장 광석을 꺾고 획득한 징표다.",
-    "rank":"A",
-    "price":0,
-    "trade":false
+    "rank": "A",
+    "price": 0,
+    "trade": false
   },
   "14": {
     "name": "단단한 광석의 핵",
     "description": "단단한 돌을 깨 부셨다는 증거다.",
-    "rank":"E",
-    "price":2000,
-    "trade":false
+    "rank": "E",
+    "price": 2000,
+    "trade": false
   },
   "15": {
-    "name":"단단한 악세서리 교환권",
+    "name": "단단한 악세서리 교환권",
     "description": "단단한 돌의 부산품이다.",
     "rank": "E",
-    "price":3000,
-    "trade":true
+    "price": 3000,
+    "trade": true
+  },
+  "16": {
+    "name": "지식의 서",
+    "description": "한번 읽는 것 만으로도 대량의 지식을 얻을 수 있다는 전설의 책 (exp+(본인레벨+환생*10)*100)",
+    "rank": "S",
+    "price": 3000,
+    "trade": false
+  },
+  "17": {
+    "name": "보증 수표",
+    "description": "딱히 엄청난 기능이 있지는 않지만 비싼 가격에 판매 할 수 있다.",
+    "rank": "S",
+    "price": 100000,
+    "trade": false
   }
 }

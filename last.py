@@ -53,6 +53,9 @@ class MyClient(discord.Client):
                 cur.execute(
                     "INSERT INTO shop(item1,item2,item3,item4,item5,item6,id) VALUES(%s,%s,%s,%s,%s,%s,%s)",
                     ('3 -1 250', "5 10 350", "6 15 75", "7 5 1000", "8 1 30000", "9 1 50000", i[0]))
+            cur.execute("SELECT * FROM quest WHERE id = %s", i[0])
+            if cur.fetchone():
+                cur.execute("UPDATE quest SET kill1='any 15 0', get1='any 20 0',  ")
             if weekday == 4:
                 setItem(4, i[0], 1)
                 cur.execute("UPDATE user_boss SET boss1=0")
@@ -369,7 +372,7 @@ def getWeapon(item: dict, id: int):
     cur.close()
 
 
-def etTitle(item: dict, id: int):
+def getTitle(item: dict, id: int):
     '''
     칭호 정보 만들기
     ---------------
@@ -579,8 +582,8 @@ def getStatus(id: int):
     유저 스텟 불러오기
     -----------------
     - id: 유저 아이디
-
-    `return {'power': int, 'hp': int, "str": int,'damage': int, 'crit': int, 'crit_damage': int, 'maxhp': int, 'point': int, 'title': str}`
+    
+    `return {'power': 0, 'hp': 25, "str": 0, "str_stat": 0, "power_stat": 0, "power_else": 0, "hp_stat": 0, "crit_damage_stat": 0, 'damage': 0, 'crit': 0, 'crit_damage': 0, 'maxhp': 0, 'point': 0, 'title': ''}`
     '''
     cur = con.cursor()
     # 갑옷 힘,체력,중량 불러오기
@@ -692,6 +695,24 @@ def setup():
 async def raid_clear(interaction: Interaction, 유저: str):
     if interaction.user.id == 432066597591449600:
         raid_dic[int(유저)] = False
+
+@tree.command(name="지식의 서",description="지식의 서 사용이 가능하다.")
+async def int_book(interaction:Interaction):
+    if not authorize(interaction.user.id):
+        return await interaction.response.send_message(f"`회원가입` 명령어로 먼저 회원가입을 해주세요.", ephemeral=True)
+    amount = isExistItem(interaction.user.id,16)
+    if amount <=0:
+        return await interaction.response.send_message(f"지식의 서가 없습니다.",ephemeral=True)
+    cur=con.cursor()
+    cur.execute("UPDATE user_info SET exp = exp + (level+rebirth*10)*100 WHERE id = %s",interaction.user.id)
+    cur.execute("SELECT level,rebirth,exp FROM user_info WHERE id = %s",interaction.user.id)
+    level, rebirth, exp = cur.fetchone()
+    num = is_levelup(rebirth,level,exp,interaction.user.id)
+    if num == MAX_LEVEL+1:
+        await interaction.response.send_message(f"{rebirth+1}차 환생 달성!",ephemeral=True)
+    else:
+        await interaction.response.send_message(f"{level+num}레벨 달성!",ephemeral=True)
+    getItem(16,interaction.user.id,-1)
 
 
 @tree.command(name="레이드", description="레이드")
