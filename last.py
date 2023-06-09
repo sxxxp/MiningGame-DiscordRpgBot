@@ -1211,7 +1211,7 @@ async def reset_stat(interaction: Interaction):
         cur.execute("SELECT level,rebirth FROM user_info WHERE id = %s",
                     interaction.user.id)
         level, rebirth = cur.fetchone()
-        cur.execute("UPDATE user_stat SET power = 1 , str = 5, hp = 5, crit_damage=50 ,point = %s WHERE id = %s",
+        cur.execute("UPDATE user_stat SET power = 3, str = 5, hp = 10, crit_damage=50 ,point = %s WHERE id = %s",
                     (level*STAT_PER_LEVEL+rebirth*STAT_PER_REBIRTH, interaction.user.id))
         cur.close()
         con.commit()
@@ -2256,7 +2256,7 @@ async def ranking(interaction: Interaction, 종류: rankingEnum):
         for i in cur.fetchall():
             block, require = block_exp(i[3], i[1], i[2])
             embed.add_field(
-                name=f"{i[0]} {i[3]}차환생 Lv.{i[1]} ({i[2]}/{require})", value=block, inline=False)
+                name=f"{i[0]} {i[3]}차환생 Lv.{i[1]} ({format(i[2],',')}/{format(require,',')})", value=block, inline=False)
         cur.execute(
             "SELECT RANKING FROM (SELECT *,RANK() OVER (ORDER BY rebirth DESC, `level` DESC, `exp` DESC, create_at ASC) RANKING FROM user_info) AS ranked_user_info WHERE id = %s", interaction.user.id)
     elif 종류.value == "money":  # 자산기준 랭킹
