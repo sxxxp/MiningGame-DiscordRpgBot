@@ -1635,7 +1635,6 @@ async def shop(interaction: Interaction):
     value = {}
     resd[interaction.user.id] = False
     cur = con.cursor()
-    money = getMoney(interaction.user.id)
     history = []
     utils = getJson('./json/util.json')
     cur.execute(
@@ -1744,6 +1743,7 @@ async def shop(interaction: Interaction):
         code = interaction.data['custom_id']
         left = '∞' if buy_item[code]['amount'] <= -1 \
             else f'{buy_item[code]["amount"]}개'
+        money = getMoney(interaction.user.id)
         embed.add_field(
             name=f"{utils[code]['name']} {format(buy_item[code]['price'],',')}골드", value=f"남은개수 : {left}")
         embed.add_field(
@@ -1791,6 +1791,7 @@ async def shop(interaction: Interaction):
     async def buy_callback(interaction: Interaction):  # 구매하기 눌렀을때
         view = ui.View()
         value[interaction.user.id] = 1
+        money = getMoney(interaction.user.id)
         embed = discord.Embed(title="상점")
         embed.add_field(name="진열된 아이템", value="\u200b", inline=False)
         for idx, i in enumerate(buy_item):
@@ -1851,7 +1852,8 @@ async def shop(interaction: Interaction):
                 else f'{buy_item[i]["amount"]}개'
             embed.add_field(name=f"{utils[i]['name']} {format(buy_item[i]['price'],',')}골드",
                             value=f"남은 개수: {left}", inline=False)
-        embed.set_footer(text=f"보유중 : {money}골드")
+        money = getMoney(interaction.user.id)
+        embed.set_footer(text=f"보유중 : {format(money,',')}골드")
         view = ui.View(timeout=None)
         buy = ui.Button(label="구매하기", style=ButtonStyle.green)
         sell = ui.Button(label="판매하기", style=ButtonStyle.red)
