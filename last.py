@@ -1575,8 +1575,9 @@ async def reinforce_weapon(interaction: Interaction, 종류: reinEnum):
             if user_amount < amounts[-1]:
                 disabled = True
         stat_name = getPartRein(종류.value)
+        stat = stat*5 if stat_name == "체력" else stat*2 if stat_name = "중량" else stat
         embed.set_footer(
-            text=f"강화 성공시 {stat_name} + {stat*2 if stat_name == '체력' else stat }")
+            text=f"강화 성공시 {stat_name} + {stat}")
         view = ui.View(timeout=None)
         button = ui.Button(label="강화하기", disabled=disabled,
                            style=ButtonStyle.green)
@@ -1606,7 +1607,7 @@ async def reinforce_weapon(interaction: Interaction, 종류: reinEnum):
                 else:  # 방어구일때
                     real_name = translateName(stat_name)
                     cur.execute(
-                        f"UPDATE user_wear SET upgrade = upgrade +1, {real_name} = {real_name} + {stat*2 if real_name == 'hp' else stat} WHERE id = {interaction.user.id} AND wear = 1 AND part = {종류.value} ")
+                        f"UPDATE user_wear SET upgrade = upgrade +1, {real_name} = {real_name} + {stat} WHERE id = {interaction.user.id} AND wear = 1 AND part = {종류.value} ")
                 item['upgrade'] += 1
                 if item["upgrade"] >= 20:  # 20강 이상 성공 했을때 해당 채널에 메시지 출력
                     await interaction.channel.send(f"`{interaction.user.display_name}`님이 `{item['name']} +{item['upgrade']}` 강화에 성공했습니다!")
