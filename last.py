@@ -157,6 +157,7 @@ class miningEnum(Enum):
     기본광산 = 1
     깊은광산 = 2
     반짝이는광산 = 3
+    붉은광산 = 4
     요일광산EASY = -datetime.datetime.now(tz=KST).weekday()
     주간광산EASY = -8
     지옥광산 = -7
