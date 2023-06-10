@@ -48,7 +48,7 @@ class MyClient(discord.Client):
             cur.execute("SELECT * FROM shop WHERE id=%s", i[0])
             if cur.fetchone():
                 cur.execute(
-                    "UPDATE shop SET item1='3 -1 250',item2='5 10 350', item3='6 15 75', item4='7 5 1000', item5='8 1 30000',item6='9 1 50000' WHERE id = %s", i[0])
+                    "UPDATE shop SET item1='3 -1 250',item2='5 10 350', item3='6 15 75', item4='7 5 1000', item5='16 1 500000',item6='9 1 50000' WHERE id = %s", i[0])
             else:
                 cur.execute(
                     "INSERT INTO shop(item1,item2,item3,item4,item5,item6,id) VALUES(%s,%s,%s,%s,%s,%s,%s)",
@@ -612,7 +612,7 @@ def getStatus(id: int):
     else:
         option = {}
     cur.execute(
-        "SELECT power,hp*3,str/10,crit,crit_damage/100,point FROM user_stat WHERE id=%s", id)
+        "SELECT power,hp*5,str/10,crit,crit_damage/100,point FROM user_stat WHERE id=%s", id)
     stat = makeDictionary(['power', 'hp', 'str', 'crit',
                           'crit_damage', 'point'], cur.fetchone())
     final = {'power': 0, 'hp': 25, "str": 0, "str_stat": 0, "power_stat": 0, "power_else": 0, "hp_stat": 0, "crit_damage_stat": 0,
