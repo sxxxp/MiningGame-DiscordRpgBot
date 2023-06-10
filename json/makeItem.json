@@ -244,6 +244,18 @@
           "money": 50
         }
       }
+    },
+    {
+      "지식의 서": {
+        "code": "16",
+        "percent": 100,
+        "rank": "S",
+        "amount": 1,
+        "required": {
+          "18": 50,
+          "money": 10000
+        }
+      }
     }
   ],
   "title": [
