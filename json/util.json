@@ -117,5 +117,40 @@
     "rank": "S",
     "price": 100000,
     "trade": false
+  },
+  "18": {
+    "name": "지식의 서 조각"
+    "description": "모으다 보면 좋은 일이 생길지도...?"
+    "rank": "A",
+    "price": 10,
+    "trade": false
+  },
+  "19": {
+    "name": "식어버린 용암 정수",
+    "description": "상온에 너무 오래 보관한 듯한 용암 정수다."
+    "rank": "E",
+    "price": 1500,
+    "trade": false
+  },
+  "20": {
+    "name": "미지근한 광석 파편",
+    "description": "상온에 너무 오래 보관한 듯한 광석 파편이다.",
+    "rank":"E",
+    "price": 350,
+    "trade": true
+  },
+  "21": {
+    "name": "따뜻한 용암 정수",
+    "description": "약간 따스한 온기가 흘러나오는 용암 정수다",
+    "rank": "E",
+    "price": 2000,
+    "trade": false
+  },
+  "22": {
+    "name": "따끈한 광석 파편",
+    "description": "방금 오븐에서 구워낸 것 같은 따끈함을 지닌 광석 파편이다.",
+    "rank": "E",
+    "price": 500,
+    "trade": true
   }
 }
