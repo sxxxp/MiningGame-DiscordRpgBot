@@ -1575,7 +1575,7 @@ async def reinforce_weapon(interaction: Interaction, 종류: reinEnum):
             if user_amount < amounts[-1]:
                 disabled = True
         stat_name = getPartRein(종류.value)
-        stat = stat*5 if stat_name == "체력" else stat*2 if stat_name = "중량" else stat
+        stat *= 5 if stat_name == "체력" else 2 if stat_name == "중량" else 1
         embed.set_footer(
             text=f"강화 성공시 {stat_name} + {stat}")
         view = ui.View(timeout=None)
