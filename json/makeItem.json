@@ -232,6 +232,18 @@
           "money": 500
         }
       }
+    },
+    {
+      "강화서": {
+        "code": "3",
+        "percent": 100,
+        "rank": "F",
+        "amount": 3,
+        "required": {
+          "7": 1,
+          "money": 50
+        }
+      }
     }
   ],
   "title": [
