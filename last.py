@@ -612,7 +612,7 @@ def getStatus(id: int):
     else:
         option = {}
     cur.execute(
-        "SELECT power,hp*5,str/10,crit,crit_damage/100,point FROM user_stat WHERE id=%s", id)
+        "SELECT power,hp*5,str/10,crit,crit_damage/50,point FROM user_stat WHERE id=%s", id)
     stat = makeDictionary(['power', 'hp', 'str', 'crit',
                           'crit_damage', 'point'], cur.fetchone())
     final = {'power': 0, 'hp': 25, "str": 0, "str_stat": 0, "power_stat": 0, "power_else": 0, "hp_stat": 0, "crit_damage_stat": 0,
@@ -2382,7 +2382,7 @@ async def register(interaction: Interaction, 닉네임: str):
         cur.execute("""INSERT INTO user_info(nickname,id,exp,level,rebirth,money,role,create_at,mooroong) 
                     VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s)""", (닉네임, interaction.user.id, 0, 1, 0, 100, 0, datetime.datetime.today(), 0))
         cur.execute("INSERT INTO user_stat(id,power,hp,str,crit,crit_damage,point) VALUES(%s,%s,%s,%s,%s,%s,%s)",
-                    (interaction.user.id, 3, 10, 5, 25, 50, 2))
+                    (interaction.user.id, 3, 10, 5, 25, 25, 2))
         cur.execute("""INSERT INTO user_weapon(name,upgrade,`rank`,level,power,damage,wear,trade,id,url)
                     VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
                     ('기본 곡괭이', 0, 'F', 1, 5, 100, 1, 0, interaction.user.id, "https://cdn.discordapp.com/attachments/988424121878741022/1040198148661973022/pickaxe1.png"))
