@@ -106,5 +106,23 @@
     "rank": "E",
     "weight": 1.7,
     "price": 2650
+  },
+  "19": {
+    "name": "미확인 화석",
+    "rank": "E",
+    "weight": 0.5,
+    "price": 750
+  },
+  "20": {
+    "name": "티타늄",
+    "rank": "E",
+    "weight": 1.2,
+    "price": 1950
+  },
+  "21": {
+    "name": "벽옥",
+    "rank": "E",
+    "weight": 2,
+    "price": 4000
   }
 }
