@@ -838,7 +838,7 @@ async def raid(interaction: Interaction, 보스: bossEnum):
         if interaction.user.id in party_info:
             del party_info[interaction.user.id]
             sign.remove(interaction.user.id)
-            del raid_dic[interaction.user.id]
+            raid_dic[interaction.user.id]=False
             await matcher.followup.send(content=f"{getName(interaction.user.id)} 유저님이 나갔습니다.", ephemeral=True)
         if not party_info:
             await matcher.delete_original_response()
@@ -846,7 +846,7 @@ async def raid(interaction: Interaction, 보스: bossEnum):
         if interaction.user.id == matcher.user.id:
             for i in party_info:
                 sign.remove(i)
-                del raid_dic[i]
+                raid_dic[interaction.user.id]=False
                 del party_info[i]
             await matcher.delete_original_response()
 
@@ -881,6 +881,7 @@ async def raid(interaction: Interaction, 보스: bossEnum):
             util = getJson('./json/util.json')
             for i in party_info:
                 text = ''
+                raid_dic[i]=False
                 cur.execute(
                     "UPDATE user_info SET money = money + %s WHERE id = %s", (boss['gold'], i))
                 for idx in range(len(util_code)):
