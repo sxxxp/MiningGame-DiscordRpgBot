@@ -12,9 +12,9 @@ import math
 import asyncio
 import json
 import os
-# from dotenv import load_dotenv
+from dotenv import load_dotenv
 
-# load_dotenv()
+load_dotenv()
 
 GUILD_ID = '9134824600498483220'
 STAT_PER_LEVEL = 2
@@ -1320,6 +1320,7 @@ async def makeItem(interaction: Interaction, 종류: makeItemEnum):
                                     name=f"{translateName(j)} {value1}~{value2}", value="\u200b")
                     embed.add_field(
                         name="\u200b", value='\u200b', inline=False)
+                    req_text=""
                     for j in item['required']:
                         if j == "money":
                             req_items.append("골드")
@@ -1327,8 +1328,7 @@ async def makeItem(interaction: Interaction, 종류: makeItemEnum):
                             req_items.append(utils[j]['name'])
                         req_amounts.append(
                             item['required'][j])
-                        embed.add_field(
-                            name="재료", value=f"{req_items[-1]} {format(item['required'][j]*cnt[interaction.user.id],',')} 개")
+                        req_text+=f"{req_items[-1]} {format(item['required'][j]*cnt[interaction.user.id],',')} 개\n"
                         if req_items[-1] == "골드":
                             cur.execute(
                                 "SELECT money FROM user_info WHERE id = %s", interaction.user.id)
@@ -1341,6 +1341,7 @@ async def makeItem(interaction: Interaction, 종류: makeItemEnum):
                         else:
                             if allitem[0] < item['required'][j]*cnt[interaction.user.id]:
                                 disabled = True
+                    embed.add_field(name="재료",value=req_text)
                     percent = item['percent']
                     embed.set_footer(
                         text=f"성공확률 : {item['percent']}%")
@@ -1394,9 +1395,11 @@ async def makeItem(interaction: Interaction, 종류: makeItemEnum):
                                 getWeapon(item, interaction.user.id)
                             if category == "title":
                                 getTitle(item, interaction.user.id)
-                            return await interaction.response.edit_message(content="제작 성공!", embed=None, view=None)
+                            await interaction.response.edit_message(content=f"{item['name']} 제작 성공!")
+                            await setup(interaction)
                         else:
-                            return await interaction.response.edit_message(content="제작 실패...", embed=None, view=None)
+                            await interaction.response.edit_message(content=f"{item['name']} 제작 실패...")
+                            await setup(interaction)
                     else:
                         real_cnt = 0
                         for i in range(cnt[interaction.user.id]):
@@ -1405,8 +1408,8 @@ async def makeItem(interaction: Interaction, 종류: makeItemEnum):
 
                         getItem(item['code'], interaction.user.id,
                                 real_cnt*item['amount'])
-                        cur.close()
-                        return await interaction.response.edit_message(content=f"{cnt[interaction.user.id]}회 중 {real_cnt}번 성공!", embed=None, view=None)
+                        await interaction.response.edit_message(content=f"{item['name']}제작 {cnt[interaction.user.id]}회 중 {real_cnt}번 성공!")
+                        await setup(interaction)
 
                 makebutton.callback = make_callback
                 backbutton.callback = back_callback
