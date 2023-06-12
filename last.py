@@ -20,7 +20,7 @@ GUILD_ID = '9134824600498483220'
 STAT_PER_LEVEL = 2
 STAT_PER_REBIRTH = 50
 MAX_REBIRTH = 10
-MAX_LEVEL = 70
+MAX_LEVEL = 150
 KST = datetime.timezone(datetime.timedelta(hours=9))
 ticket = {
     -0: {'code': 2, 'cnt': 3},
@@ -48,7 +48,7 @@ class MyClient(discord.Client):
             cur.execute("SELECT * FROM shop WHERE id=%s", i[0])
             if cur.fetchone():
                 cur.execute(
-                    "UPDATE shop SET item1='3 -1 250',item2='5 10 350', item3='6 15 75', item4='7 5 1000', item5='8 1 30000',item6='9 1 50000' WHERE id = %s", i[0])
+                    "UPDATE shop SET item1='3 -1 250',item2='5 10 350', item3='6 15 75', item4='7 5 1000', item5='16 1 500000',item6='9 1 50000' WHERE id = %s", i[0])
             else:
                 cur.execute(
                     "INSERT INTO shop(item1,item2,item3,item4,item5,item6,id) VALUES(%s,%s,%s,%s,%s,%s,%s)",
@@ -157,6 +157,8 @@ class miningEnum(Enum):
     기본광산 = 1
     깊은광산 = 2
     반짝이는광산 = 3
+    붉은광산 = 4
+    녹아내리는광산 = 5
     요일광산EASY = -datetime.datetime.now(tz=KST).weekday()
     주간광산EASY = -8
     지옥광산 = -7
@@ -612,7 +614,7 @@ def getStatus(id: int):
     else:
         option = {}
     cur.execute(
-        "SELECT power,hp*3,str/10,crit,crit_damage/100,point FROM user_stat WHERE id=%s", id)
+        "SELECT power,hp*5,str/10,crit,crit_damage/50,point FROM user_stat WHERE id=%s", id)
     stat = makeDictionary(['power', 'hp', 'str', 'crit',
                           'crit_damage', 'point'], cur.fetchone())
     final = {'power': 0, 'hp': 25, "str": 0, "str_stat": 0, "power_stat": 0, "power_else": 0, "hp_stat": 0, "crit_damage_stat": 0,
@@ -837,7 +839,7 @@ async def raid(interaction: Interaction, 보스: bossEnum):
         if interaction.user.id in party_info:
             del party_info[interaction.user.id]
             sign.remove(interaction.user.id)
-            del raid_dic[interaction.user.id]
+            raid_dic[interaction.user.id]=False
             await matcher.followup.send(content=f"{getName(interaction.user.id)} 유저님이 나갔습니다.", ephemeral=True)
         if not party_info:
             await matcher.delete_original_response()
@@ -845,7 +847,7 @@ async def raid(interaction: Interaction, 보스: bossEnum):
         if interaction.user.id == matcher.user.id:
             for i in party_info:
                 sign.remove(i)
-                del raid_dic[i]
+                raid_dic[interaction.user.id]=False
                 del party_info[i]
             await matcher.delete_original_response()
 
@@ -880,6 +882,7 @@ async def raid(interaction: Interaction, 보스: bossEnum):
             util = getJson('./json/util.json')
             for i in party_info:
                 text = ''
+                raid_dic[i]=False
                 cur.execute(
                     "UPDATE user_info SET money = money + %s WHERE id = %s", (boss['gold'], i))
                 for idx in range(len(util_code)):
@@ -1575,8 +1578,9 @@ async def reinforce_weapon(interaction: Interaction, 종류: reinEnum):
             if user_amount < amounts[-1]:
                 disabled = True
         stat_name = getPartRein(종류.value)
+        stat *= 5 if stat_name == "체력" else 2 if stat_name == "중량" else 1
         embed.set_footer(
-            text=f"강화 성공시 {stat_name} + {stat*2 if stat_name == '체력' else stat }")
+            text=f"강화 성공시 {stat_name} + {stat}")
         view = ui.View(timeout=None)
         button = ui.Button(label="강화하기", disabled=disabled,
                            style=ButtonStyle.green)
@@ -1606,7 +1610,7 @@ async def reinforce_weapon(interaction: Interaction, 종류: reinEnum):
                 else:  # 방어구일때
                     real_name = translateName(stat_name)
                     cur.execute(
-                        f"UPDATE user_wear SET upgrade = upgrade +1, {real_name} = {real_name} + {stat*2 if real_name == 'hp' else stat} WHERE id = {interaction.user.id} AND wear = 1 AND part = {종류.value} ")
+                        f"UPDATE user_wear SET upgrade = upgrade +1, {real_name} = {real_name} + {stat} WHERE id = {interaction.user.id} AND wear = 1 AND part = {종류.value} ")
                 item['upgrade'] += 1
                 if item["upgrade"] >= 20:  # 20강 이상 성공 했을때 해당 채널에 메시지 출력
                     await interaction.channel.send(f"`{interaction.user.display_name}`님이 `{item['name']} +{item['upgrade']}` 강화에 성공했습니다!")
@@ -2381,7 +2385,7 @@ async def register(interaction: Interaction, 닉네임: str):
         cur.execute("""INSERT INTO user_info(nickname,id,exp,level,rebirth,money,role,create_at,mooroong) 
                     VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s)""", (닉네임, interaction.user.id, 0, 1, 0, 100, 0, datetime.datetime.today(), 0))
         cur.execute("INSERT INTO user_stat(id,power,hp,str,crit,crit_damage,point) VALUES(%s,%s,%s,%s,%s,%s,%s)",
-                    (interaction.user.id, 3, 10, 5, 25, 50, 2))
+                    (interaction.user.id, 3, 10, 5, 25, 25, 2))
         cur.execute("""INSERT INTO user_weapon(name,upgrade,`rank`,level,power,damage,wear,trade,id,url)
                     VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
                     ('기본 곡괭이', 0, 'F', 1, 5, 100, 1, 0, interaction.user.id, "https://cdn.discordapp.com/attachments/988424121878741022/1040198148661973022/pickaxe1.png"))
