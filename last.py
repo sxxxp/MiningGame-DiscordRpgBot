@@ -12,9 +12,9 @@ import math
 import asyncio
 import json
 import os
-from dotenv import load_dotenv
+# from dotenv import load_dotenv
 
-load_dotenv()
+# load_dotenv()
 
 GUILD_ID = '9134824600498483220'
 STAT_PER_LEVEL = 2
