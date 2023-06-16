@@ -2918,6 +2918,7 @@ async def mining(interaction: Interaction, 광산: miningEnum):
                 description=f"개당 중량 : {item['weight']} 총 중량 : {round(item['weight']*item['amount'],2)}",
                 value=f"{item['name']}-{item['amount']}-{item['weight']}"
             ))
+        options.append(SelectOption(label="모두 버리기",description="현재 보유중인 광석을 모두 버립니다.",value="all-all-all"))
         items = ui.Select(placeholder="버릴 아이템을 골라주세요.",
                           options=options, disabled=not len(options))
         view.add_item(items)
@@ -2942,7 +2943,12 @@ async def mining(interaction: Interaction, 광산: miningEnum):
             if name == "bug":
                 await interaction.response.edit_message(content="버그가 고쳐졌습니다.")
                 return await start(interaction)
-
+            if name == "all":
+                adventrue_inventory[interaction.user.id]['items']=[]
+                adventrue_inventory[interaction.user.id]['names']=[]
+                adventrue_inventory[interaction.user.id]['weight']=0
+                await interaction.response.edit_message(content="모든 광석을 버렸습니다.")
+                return await start(interaction)
             class amountModal(ui.Modal, title=f"{name} {amount}개"):
                 answer = ui.TextInput(
                     label="개수", placeholder="제거할 개수를 선택해주세요.", required=True, default=amount)
