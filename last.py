@@ -58,7 +58,7 @@ class MyClient(discord.Client):
             #     cur.execute("UPDATE quest SET kill1='any 15 0', get1='any 20 0',  ")
             if weekday == 4:
                 setItem(4, i[0], 1)
-                cur.execute("UPDATE user_boss SET boss1=0")     
+                cur.execute("UPDATE user_boss SET boss1=0")
         con.commit()
         cur.close()
 
@@ -436,8 +436,8 @@ def block_exp(rebirth: int, level: int, exp: int):
     name = ["0_", "1_", "2_", "3_", "4_", "5_", "6_", "7_", "8_", "9_", "10"]
     block = [discord.utils.get(guild.emojis, name=i) for i in name]
     level_info: dict = getJson('./json/level.json')
-    if rebirth==MAX_REBIRTH:
-        percent=100
+    if rebirth == MAX_REBIRTH:
+        percent = 100
     else:
         percent = round(exp/level_info[str(rebirth)][str(level)]*100)
     if percent > 100:
@@ -458,7 +458,7 @@ def block_exp(rebirth: int, level: int, exp: int):
 
 def filter_name(name: str):
     filtering = ["gm", '운영', '영자', '시발', 'tlqkf', '병신', 'qudtls', '미친',
-                 'alcls','운영자']
+                 'alcls', '운영자']
     if not name.isalpha():
         return False
     if name.lower() in filtering:
@@ -588,7 +588,7 @@ def getStatus(id: int):
     유저 스텟 불러오기
     -----------------
     - id: 유저 아이디
-    
+
     `return {'power': 0, 'hp': 25, "str": 0, "str_stat": 0, "power_stat": 0, "power_else": 0, "hp_stat": 0, "crit_damage_stat": 0, 'damage': 0, 'crit': 0, 'crit_damage': 0, 'maxhp': 0, 'point': 0, 'title': ''}`
     '''
     cur = con.cursor()
@@ -634,7 +634,7 @@ def getStatus(id: int):
     return final
 
 
-def getSuccess(num: int, all: int):
+def getSuccess(num: float, all: int):
     '''
     확률 계산기
     -----------
@@ -642,6 +642,12 @@ def getSuccess(num: int, all: int):
 
     - else return False
     '''
+    if not num.is_integer():
+        power = len(str(num))-(int(math.log10(num))+2)
+        num = int(num*(10**power))
+        all *= (10**power)
+    else:
+        num = int(num)
     return num >= random.uniform(1, all)
 
 
@@ -702,28 +708,31 @@ async def raid_clear(interaction: Interaction, 유저: str):
     if interaction.user.id == 432066597591449600:
         raid_dic[int(유저)] = False
 
-@tree.command(name="지식의서",description="지식의 서 사용이 가능하다.")
-async def int_book(interaction:Interaction):
+
+@tree.command(name="지식의서", description="지식의 서 사용이 가능하다.")
+async def int_book(interaction: Interaction):
     if not authorize(interaction.user.id):
         return await interaction.response.send_message(f"`회원가입` 명령어로 먼저 회원가입을 해주세요.", ephemeral=True)
-    amount = isExistItem(interaction.user.id,16)
-    if amount <=0:
-        await interaction.response.send_message(f"지식의 서가 없습니다.",ephemeral=True)
+    amount = isExistItem(interaction.user.id, 16)
+    if amount <= 0:
+        await interaction.response.send_message(f"지식의 서가 없습니다.", ephemeral=True)
         await asyncio.sleep(3)
         return await interaction.delete_original_response()
-    cur=con.cursor()
-    cur.execute("UPDATE user_info SET exp = exp + (level+rebirth*10)*750 WHERE id = %s",interaction.user.id)
+    cur = con.cursor()
+    cur.execute(
+        "UPDATE user_info SET exp = exp + (level+rebirth*10)*750 WHERE id = %s", interaction.user.id)
     con.commit()
-    cur.execute("SELECT level,rebirth,exp FROM user_info WHERE id = %s",interaction.user.id)
+    cur.execute(
+        "SELECT level,rebirth,exp FROM user_info WHERE id = %s", interaction.user.id)
     level, rebirth, exp = cur.fetchone()
-    num = is_levelup(rebirth,level,exp,interaction.user.id)
+    num = is_levelup(rebirth, level, exp, interaction.user.id)
     if num == MAX_LEVEL+1:
-        await interaction.response.send_message(f"{rebirth+1}차 환생 달성!",ephemeral=True)
+        await interaction.response.send_message(f"{rebirth+1}차 환생 달성!", ephemeral=True)
     elif num > 0:
-        await interaction.response.send_message(f"{level+num}레벨 달성!",ephemeral=True)
+        await interaction.response.send_message(f"{level+num}레벨 달성!", ephemeral=True)
     else:
-        await interaction.response.send_message("성공적으로 사용 되었습니다!",ephemeral=True)
-    getItem(16,interaction.user.id,-1)
+        await interaction.response.send_message("성공적으로 사용 되었습니다!", ephemeral=True)
+    getItem(16, interaction.user.id, -1)
     await asyncio.sleep(3)
     cur.close()
     return await interaction.delete_original_response()
@@ -839,7 +848,7 @@ async def raid(interaction: Interaction, 보스: bossEnum):
         if interaction.user.id in party_info:
             del party_info[interaction.user.id]
             sign.remove(interaction.user.id)
-            raid_dic[interaction.user.id]=False
+            raid_dic[interaction.user.id] = False
             await matcher.followup.send(content=f"{getName(interaction.user.id)} 유저님이 나갔습니다.", ephemeral=True)
         if not party_info:
             await matcher.delete_original_response()
@@ -847,7 +856,7 @@ async def raid(interaction: Interaction, 보스: bossEnum):
         if interaction.user.id == matcher.user.id:
             for i in party_info:
                 sign.remove(i)
-                raid_dic[interaction.user.id]=False
+                raid_dic[interaction.user.id] = False
                 del party_info[i]
             await matcher.delete_original_response()
 
@@ -882,13 +891,13 @@ async def raid(interaction: Interaction, 보스: bossEnum):
             util = getJson('./json/util.json')
             for i in party_info:
                 text = ''
-                raid_dic[i]=False
+                raid_dic[i] = False
                 cur.execute(
                     "UPDATE user_info SET money = money + %s WHERE id = %s", (boss['gold'], i))
                 for idx in range(len(util_code)):
                     if not util_amount[idx] or not util_code[idx] or not util_percent[idx]:
                         break
-                    if getSuccess(int(util_percent[idx]), 100):
+                    if getSuccess(float(util_percent[idx]), 100):
                         code = int(util_code[idx])
                         value = getRandomValue2(util_amount[idx])
                         getItem(code, i, value)
@@ -908,7 +917,7 @@ async def raid(interaction: Interaction, 보스: bossEnum):
             auction_percent: list = boss['auction_percent'].split(" ")
             auction_amount: list = boss['auction_amount'].split(" ")
             for i in range(len(auction_code)):
-                if not getSuccess(int(auction_percent[i]), 100):
+                if not getSuccess(float(auction_percent[i]), 100):
                     auction_code.pop(i)
                     auction_amount.pop(i)
             embed.add_field(name="\u200b", value='\u200b', inline=False)
@@ -1320,7 +1329,7 @@ async def makeItem(interaction: Interaction, 종류: makeItemEnum):
                                     name=f"{translateName(j)} {value1}~{value2}", value="\u200b")
                     embed.add_field(
                         name="\u200b", value='\u200b', inline=False)
-                    req_text=""
+                    req_text = ""
                     for j in item['required']:
                         if j == "money":
                             req_items.append("골드")
@@ -1328,7 +1337,7 @@ async def makeItem(interaction: Interaction, 종류: makeItemEnum):
                             req_items.append(utils[j]['name'])
                         req_amounts.append(
                             item['required'][j])
-                        req_text+=f"{req_items[-1]} {format(item['required'][j]*cnt[interaction.user.id],',')} 개\n"
+                        req_text += f"{req_items[-1]} {format(item['required'][j]*cnt[interaction.user.id],',')} 개\n"
                         if req_items[-1] == "골드":
                             cur.execute(
                                 "SELECT money FROM user_info WHERE id = %s", interaction.user.id)
@@ -1341,7 +1350,7 @@ async def makeItem(interaction: Interaction, 종류: makeItemEnum):
                         else:
                             if allitem[0] < item['required'][j]*cnt[interaction.user.id]:
                                 disabled = True
-                    embed.add_field(name="재료",value=req_text)
+                    embed.add_field(name="재료", value=req_text)
                     percent = item['percent']
                     embed.set_footer(
                         text=f"성공확률 : {item['percent']}%")
@@ -2600,7 +2609,7 @@ async def inventory(interaction: Interaction, 종류: makeItemEnum):
             for i in [{"name": "힘", "value": "power"}, {"name": "체력", "value": "hp"}, {"name": "중량", "value": "str"}, {"name": "크리티컬 확률", "value": "crit"}, {"name": "크리티컬 데미지", "value": "crit_damage"}, {"name": "데미지", "value": "damage"}]:
                 if i['value'] == "crit_damage" or i['value'] == "damage":
                     value = round(title[i['value']]*100, 0)
-                    display_value = format(value,',')
+                    display_value = format(value, ',')
                     embed.add_field(
                         name=f"{i['name']} : {f'{display_value}%'}({'+' if title[i['value']]-gap[i['value']]>0 else ''}{format(round(value-gap[i['value']],0),',')}%)", value="\u200b")
                 elif i['value'] == "crit":
@@ -3000,7 +3009,7 @@ async def mining(interaction: Interaction, 광산: miningEnum):
             embed = discord.Embed(title="보상 요약")
             embed.add_field(
                 name=f"{format(int(enemy['exp']),',')} 경험치를 획득했습니다.", value="\u200b", inline=False)
-            if num and num!=-1:
+            if num and num != -1:
                 if num == MAX_LEVEL+1:
                     embed.add_field(
                         name=f"{rebirth+1}차 환생이 되었습니다.", value='\u200b', inline=False)
@@ -3010,7 +3019,7 @@ async def mining(interaction: Interaction, 광산: miningEnum):
             view = ui.View(timeout=None)
             embed.add_field(name="광석 :", value='\u200b', inline=False)
             for i in range(len(item_percent)):
-                if getSuccess(int(item_percent[i]), 100):
+                if getSuccess(float(item_percent[i]), 100):
                     stone: dict = stone_data[item_code[i]]
                     min, max = item_amount[i].split("~")
                     total = random.randint(int(min), int(max))
@@ -3033,7 +3042,7 @@ async def mining(interaction: Interaction, 광산: miningEnum):
                         name=f"{stone['name']} {total}개 획득!", inline=False, value="\u200b")
             embed.add_field(name="기타 :", value='\u200b', inline=False)
             for i in range(len(util_percent)):
-                if getSuccess(int(util_percent[i]), 100):
+                if getSuccess(float(util_percent[i]), 100):
                     util: dict = util_data[util_code[i]]
                     isExistItem(interaction.user.id, util_code[i])
                     min, max = util_amount[i].split("~")
