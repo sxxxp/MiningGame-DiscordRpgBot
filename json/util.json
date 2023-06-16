@@ -135,7 +135,7 @@
   "20": {
     "name": "미지근한 광석 파편",
     "description": "상온에 너무 오래 보관한 듯한 광석 파편이다.",
-    "rank":"E",
+    "rank": "E",
     "price": 350,
     "trade": true
   },
@@ -151,6 +151,20 @@
     "description": "방금 오븐에서 구워낸 것 같은 따끈함을 지닌 광석 파편이다.",
     "rank": "E",
     "price": 500,
+    "trade": true
+  },
+  "23": {
+    "name": "녹아버린 용암 정수",
+    "description": "너무 고온에 있었던 탓인지 녹아버렸다.",
+    "rank": "E",
+    "price": 3500,
+    "trade": false
+  },
+  "24": {
+    "name": "액체 광석 파편",
+    "description": "광석 파편이 녹아서 액체가 되어버렸다.",
+    "rank": "E",
+    "price": 750,
     "trade": true
   }
 }

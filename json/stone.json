@@ -73,21 +73,21 @@
   },
   "13": {
     "name": "무지갯빛 돌",
-    "rank":"E",
-    "weight":0.5,
+    "rank": "E",
+    "weight": 0.5,
     "price": 550
   },
-  "14":{
-    "name":"오렌지빛 에메랄드",
-    "rank":"E",
-    "weight":1,
-    "price":1200
+  "14": {
+    "name": "오렌지빛 에메랄드",
+    "rank": "E",
+    "weight": 1,
+    "price": 1200
   },
-  "15":{
-    "name":"지옥 수문장의 심장",
-    "rank":"S",
-    "weight":66.6,
-    "price":66666
+  "15": {
+    "name": "지옥 수문장의 심장",
+    "rank": "S",
+    "weight": 66.6,
+    "price": 66666
   },
   "16": {
     "name": "석회암",
@@ -124,5 +124,23 @@
     "rank": "E",
     "weight": 2,
     "price": 4000
+  },
+  "22": {
+    "name": "옥",
+    "rank": "E",
+    "weight": 0.5,
+    "price": 975
+  },
+  "23": {
+    "name": "용암 광석",
+    "rank": "E",
+    "weight": 1.5,
+    "price": 3500
+  },
+  "24": {
+    "name": "호박석",
+    "rank": "E",
+    "weight": 2,
+    "price": 6000
   }
 }

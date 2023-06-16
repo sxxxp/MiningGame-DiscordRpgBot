@@ -232,6 +232,26 @@
         },
         "percent": 100
       }
+    },
+    {
+      "뜨거운 용암 장화": {
+        "name": "뜨거운 용암 장화",
+        "rank": "E",
+        "level": 50,
+        "power": "25 35",
+        "hp": "85 100",
+        "str": "15 25",
+        "collection": "용암 갑옷",
+        "part": 4,
+        "trade": false,
+        "url": "",
+        "required": {
+          "23": 3,
+          "24": 15,
+          "money": 45000
+        },
+        "percent": 100
+      }
     }
   ],
 
