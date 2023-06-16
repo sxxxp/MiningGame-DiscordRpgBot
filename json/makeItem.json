@@ -192,6 +192,46 @@
         },
         "percent": 100
       }
+    },
+    {
+      "식어버린 용암 투구": {
+        "name": "식어버린 용암 투구",
+        "rank": "E",
+        "level": 40,
+        "power": "10 15",
+        "hp": "30 45",
+        "str": "10 15",
+        "collection": "용암 세트",
+        "part": 1,
+        "trade": false,
+        "url": "",
+        "required": {
+          "19": 3,
+          "20": 15,
+          "money": 15000
+        },
+        "percent": 100
+      }
+    },
+    {
+      "미지근한 용암 갑옷": {
+        "name": "미지근한 용암 갑옷",
+        "rank": "E",
+        "level": 45,
+        "power": "20 30",
+        "hp": "60 90",
+        "str": "20 25",
+        "collection": "용암 세트",
+        "part": 2,
+        "trade": false,
+        "url": "",
+        "required": {
+          "21": 3,
+          "22": 15,
+          "money": 25000
+        },
+        "percent": 100
+      }
     }
   ],
 
