@@ -458,7 +458,7 @@ def block_exp(rebirth: int, level: int, exp: int):
 
 def filter_name(name: str):
     filtering = ["gm", '운영', '영자', '시발', 'tlqkf', '병신', 'qudtls', '미친',
-                 'alcls']
+                 'alcls','운영자']
     if not name.isalpha():
         return False
     if name.lower() in filtering:
@@ -3053,8 +3053,7 @@ async def mining(interaction: Interaction, 광산: miningEnum):
             embed.add_field(
                 name="/스텟 명령어\n/강화 명령어\n/제작소 명령어\n등으로 강해질 수 있습니다.", value='\u200b', inline=False)
             for i in adventrue_inventory[interaction.user.id]['items']:
-                max = math.ceil(i['amount']/2)
-                total = random.randint(0, max)
+                total = random.randint(0, i['amount'])
                 i['amount'] -= total
                 adventrue_inventory[interaction.user.id]['weight'] -= total*i['weight']
                 if i['amount'] <= 0:
