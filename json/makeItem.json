@@ -147,7 +147,7 @@
         "collection": "단단한 악세서리",
         "part": 6,
         "trade": false,
-        "url": "",
+        "url": "https://cdn.discordapp.com/attachments/988424121878741022/1119167847847952485/hard_stone_necklace.png",
         "required": {
           "15": 1,
           "money": 3000
@@ -166,7 +166,7 @@
         "collection": "단단한 악세서리",
         "part": 7,
         "trade": false,
-        "url": "",
+        "url": "https://cdn.discordapp.com/attachments/988424121878741022/1119167848162541588/hard_stone_ring.png",
         "required": {
           "15": 1,
           "money": 4000
@@ -185,7 +185,7 @@
         "collection": "단단한 악세서리",
         "part": 8,
         "trade": false,
-        "url": "",
+        "url": "https://cdn.discordapp.com/attachments/988424121878741022/1119167847575343104/hard_stone_earing.png",
         "required": {
           "15": 1,
           "money": 5000
