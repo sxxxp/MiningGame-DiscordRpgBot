@@ -204,7 +204,7 @@
         "collection": "용암 갑옷",
         "part": 1,
         "trade": false,
-        "url": "",
+        "url": "https://cdn.discordapp.com/attachments/988424121878741022/1119162702871408710/cold_magma_helmet.png",
         "required": {
           "19": 3,
           "20": 15,
@@ -224,7 +224,7 @@
         "collection": "용암 갑옷",
         "part": 2,
         "trade": false,
-        "url": "",
+        "url": "https://cdn.discordapp.com/attachments/988424121878741022/1119162702561026088/magma_chestplate.png",
         "required": {
           "21": 3,
           "22": 15,

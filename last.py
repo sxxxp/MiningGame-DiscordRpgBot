@@ -1230,7 +1230,6 @@ async def makeItem(interaction: Interaction, 종류: makeItemEnum):
     category = 종류.value
     page = {}
     page[interaction.user.id] = 0
-    cur = con.cursor()
     cnt = {}
     cnt[interaction.user.id] = 1
 
