@@ -1235,6 +1235,7 @@ async def makeItem(interaction: Interaction, 종류: makeItemEnum):
     cnt[interaction.user.id] = 1
 
     async def setup(interaction: Interaction):  # 아이템 select 하는 함수
+        cur = con.cursor()
         embed = discord.Embed(title=f"{종류.name} 제작소")
         view = ui.View(timeout=None)
         options = []
