@@ -12,9 +12,9 @@ import math
 import asyncio
 import json
 import os
-# from dotenv import load_dotenv
+from dotenv import load_dotenv
 
-# load_dotenv()
+load_dotenv()
 
 GUILD_ID = '9134824600498483220'
 STAT_PER_LEVEL = 2
@@ -642,12 +642,13 @@ def getSuccess(num: float, all: int):
 
     - else return False
     '''
-    if not num.is_integer():
-        power = len(str(num))-(int(math.log10(num))+2)
-        num = int(num*(10**power))
-        all *= (10**power)
-    else:
-        num = int(num)
+    if not isinstance(num,int):
+        if not num.is_integer():
+            power = len(str(num))-(int(math.log10(num))+2)
+            num = int(num*(10**power))
+            all *= (10**power)
+        else:
+            num = int(num)
     return num >= random.uniform(1, all)
 
 
