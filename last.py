@@ -636,7 +636,7 @@ def getStatus(id: int):
     return final
 
 
-def getSuccess(num: float, all: int):
+def getSuccess(num, all: int):
     '''
     확률 계산기
     -----------
