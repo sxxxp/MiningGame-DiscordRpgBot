@@ -12,6 +12,7 @@ import math
 import asyncio
 import json
 import os
+import decimal
 # from dotenv import load_dotenv
 
 # load_dotenv()
@@ -643,7 +644,7 @@ def getSuccess(num: float, all: int):
 
     - else return False
     '''
-    if not isinstance(num,int):
+    if not isinstance(num,int) or not isinstance(num,decimal.Decimal):
         if not num.is_integer():
             power = len(str(num))-(int(math.log10(num))+2)
             num = int(num*(10**power))
